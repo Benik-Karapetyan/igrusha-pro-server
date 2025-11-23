@@ -1,3 +1,4 @@
 {
-  "jwtPrivateKey": "igrusha_pro_jwtPrivateKey"
+  "jwtPrivateKey": "igrusha_pro_jwtPrivateKey",
+  "db": "igrusha_pro_db"
 }
