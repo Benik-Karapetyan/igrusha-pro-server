@@ -11,33 +11,18 @@ const error = require("../middleware/error");
 module.exports = (app) => {
   app.use(
     cors({
-      origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        const allowedOrigins = [
-          "http://localhost:3000",
-          "http://localhost:5173",
-          "http://localhost:5174",
-          "http://127.0.0.1:3000",
-          "http://127.0.0.1:5173",
-          "https://igrusha-pro.vercel.app",
-        ];
-
-        if (
-          allowedOrigins.indexOf(origin) !== -1 ||
-          origin.includes("localhost") ||
-          origin.includes("127.0.0.1")
-        ) {
-          callback(null, true);
-        } else {
-          callback(null, true); // Allow all for now - change to callback(new Error('Not allowed by CORS')) for production
-        }
-      },
+      origin: true,
       credentials: true,
       exposedHeaders: ["x-auth-token"],
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "x-auth-token",
+        "Accept",
+      ],
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
     })
   );
   app.use(express.json());
