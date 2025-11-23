@@ -2,3 +2,5 @@
 /dist
 /build
 /.pnpm-store
+logfile.log
+uncaughtExceptions.log
