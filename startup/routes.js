@@ -11,7 +11,7 @@ const error = require("../middleware/error");
 module.exports = (app) => {
   app.use(
     cors({
-      origin: true,
+      origin: ["http://localhost:3000", "https://igrusha-pro.vercel.app"],
       credentials: true,
       exposedHeaders: ["x-auth-token"],
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
