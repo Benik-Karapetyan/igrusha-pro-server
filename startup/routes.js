@@ -1,6 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const helmet = require("helmet");
 const genres = require("../routes/genres");
 const customers = require("../routes/customers");
 const movies = require("../routes/movies");
@@ -10,7 +9,13 @@ const auth = require("../routes/auth");
 const error = require("../middleware/error");
 
 module.exports = (app) => {
-  app.use(cors({ exposedHeaders: ["x-auth-token"] }));
+  app.use(
+    cors({
+      origin: ["http://localhost:3000", "https://igrusha-pro.vercel.app"],
+      credentials: true,
+      exposedHeaders: ["x-auth-token"],
+    })
+  );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static("public"));
