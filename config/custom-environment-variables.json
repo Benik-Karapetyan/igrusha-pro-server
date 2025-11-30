@@ -1,4 +1,5 @@
 {
+  "host": "igrusha_pro_host",
   "jwtPrivateKey": "igrusha_pro_jwtPrivateKey",
   "db": "igrusha_pro_db"
 }
