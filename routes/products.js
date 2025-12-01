@@ -54,7 +54,7 @@ router.post("/", async (req, res) => {
   if (error) return res.status(400).send(error.message);
 
   const product = new Product({
-    ...omit(req.body, !req.body.isVariantOf ? "isVariantOf" : ""),
+    ...omit(req.body, !req.body?.isVariantOf ? "isVariantOf" : []),
     gallery: req.body.gallery.map(
       (file) =>
         `https://${config.get("s3BucketName")}.s3.${config.get(
@@ -102,7 +102,7 @@ router.put("/:id", async (req, res) => {
   let oldIsVariantOf = product.isVariantOf;
 
   product.set({
-    ...omit(req.body, !req.body.isVariantOf ? "isVariantOf" : ""),
+    ...omit(req.body, !req.body?.isVariantOf ? "isVariantOf" : []),
     gallery: req.body.gallery.map(
       (file) =>
         `https://${config.get("s3BucketName")}.s3.${config.get(
