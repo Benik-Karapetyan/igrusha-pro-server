@@ -1,5 +1,9 @@
 {
   "host": "igrusha_pro_host",
   "jwtPrivateKey": "igrusha_pro_jwtPrivateKey",
-  "db": "igrusha_pro_db"
+  "db": "igrusha_pro_db",
+  "awsRegion": "igrusha_pro_awsRegion",
+  "s3BucketName": "igrusha_pro_s3BucketName",
+  "awsAccessKeyId": "igrusha_pro_awsAccessKeyId",
+  "awsSecretAccessKey": "igrusha_pro_awsSecretAccessKey"
 }

@@ -1,28 +1,11 @@
 const config = require("config");
 const router = require("express").Router();
-const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
 const mongoose = require("mongoose");
 const { Product, validate } = require("../models/product");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const { omit } = require("lodash");
-
-const host = config.get("host");
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, "public/");
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueName + ext);
-  },
-});
-
-const upload = multer({ storage });
+const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 
 router.get("/", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -45,7 +28,8 @@ router.get("/", async (req, res) => {
     .populate("relatedProducts")
     .sort({ createdAt: 1 })
     .skip(skip)
-    .limit(pageSize);
+    .limit(pageSize)
+    .select("-__v");
   const totalRecords = await Product.countDocuments(query);
 
   res.send({
@@ -65,22 +49,18 @@ router.get("/:id", async (req, res) => {
   res.send(product);
 });
 
-router.post("/", upload.array("gallery"), async (req, res) => {
-  const { error } = validate({
-    ...req.body,
-    name: JSON.parse(req.body.name),
-    description: JSON.parse(req.body.description),
-    relatedProducts: JSON.parse(req.body.relatedProducts),
-    gallery: req.files.map((file) => `${host}/${file.filename}`),
-  });
+router.post("/", async (req, res) => {
+  const { error } = validate(req.body);
   if (error) return res.status(400).send(error.message);
 
   const product = new Product({
     ...omit(req.body, !req.body.isVariantOf ? "isVariantOf" : ""),
-    name: JSON.parse(req.body.name),
-    description: JSON.parse(req.body.description),
-    relatedProducts: JSON.parse(req.body.relatedProducts),
-    gallery: req.files.map((file) => `${host}/${file.filename}`),
+    gallery: req.body.gallery.map(
+      (file) =>
+        `https://${config.get("s3BucketName")}.s3.${config.get(
+          "awsRegion"
+        )}.amazonaws.com/${file}`
+    ),
   });
 
   if (req.body.isVariantOf) {
@@ -111,33 +91,24 @@ router.post("/", upload.array("gallery"), async (req, res) => {
   }
 });
 
-router.put("/:id", upload.array("gallery"), async (req, res) => {
-  const { error } = validate({
-    ...req.body,
-    name: JSON.parse(req.body.name),
-    description: JSON.parse(req.body.description),
-    relatedProducts: JSON.parse(req.body.relatedProducts),
-    gallery: req.files.length
-      ? req.files.map((file) => `${host}/${file.filename}`)
-      : JSON.parse(req.body.gallery),
-  });
+router.put("/:id", async (req, res) => {
+  const { error } = validate(req.body);
   if (error) return res.status(400).send(error.message);
 
   const product = await Product.findById(req.params.id);
   if (!product)
     return res.status(404).send("The product with the given ID was not found.");
 
-  const oldGallery = [...product.gallery];
   let oldIsVariantOf = product.isVariantOf;
 
   product.set({
     ...omit(req.body, !req.body.isVariantOf ? "isVariantOf" : ""),
-    name: JSON.parse(req.body.name),
-    description: JSON.parse(req.body.description),
-    relatedProducts: JSON.parse(req.body.relatedProducts),
-    gallery: req.files.length
-      ? req.files.map((file) => `${host}/${file.filename}`)
-      : JSON.parse(req.body.gallery),
+    gallery: req.body.gallery.map(
+      (file) =>
+        `https://${config.get("s3BucketName")}.s3.${config.get(
+          "awsRegion"
+        )}.amazonaws.com/${file}`
+    ),
   });
 
   if (req.body.isVariantOf) {
@@ -174,14 +145,6 @@ router.put("/:id", upload.array("gallery"), async (req, res) => {
   } else {
     await product.save();
     res.send(product);
-  }
-
-  if (req.files.length) {
-    oldGallery.forEach((file) => {
-      fs.unlink(`public/${file.split("/").pop()}`, (err) => {
-        if (err) throw err;
-      });
-    });
   }
 });
 
@@ -234,12 +197,6 @@ router.delete("/:id", [auth, admin], async (req, res) => {
     await product.deleteOne();
     res.send(product);
   }
-
-  product.gallery.forEach((file) => {
-    fs.unlink(`public/${file.split("/").pop()}`, (err) => {
-      if (err) throw err;
-    });
-  });
 });
 
 module.exports = router;

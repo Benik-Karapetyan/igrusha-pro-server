@@ -1,5 +1,7 @@
 {
   "host": "http://localhost:3001",
   "jwtPrivateKey": "test_jwtPrivateKey",
-  "db": "mongodb://localhost:27017/igrusha_pro"
+  "db": "mongodb://localhost:27017/igrusha_pro",
+  "awsRegion": "eu-north-1",
+  "s3BucketName": "igrusha-pro-demo-bucket"
 }

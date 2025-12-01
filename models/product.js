@@ -74,6 +74,8 @@ const validateProduct = (product) => {
     rating: Joi.number().min(0).max(5).required(),
     reviewCount: Joi.number().min(0).required(),
     isPublished: Joi.boolean(),
+    createdAt: Joi.date().optional(),
+    variants: Joi.array().items(Joi.objectId()).default([]),
     isVariantOf: Joi.objectId().allow("").optional(),
     sectionName: Joi.string().min(1).required(),
     relatedProducts: Joi.array().items(Joi.objectId()).default([]),
