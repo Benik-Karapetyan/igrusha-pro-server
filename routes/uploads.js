@@ -15,26 +15,6 @@ const s3 = new S3Client({
   },
 });
 
-async function deleteProductGalleryFromS3(gallery) {
-  const bucket = config.get("s3BucketName");
-
-  await Promise.all(
-    (gallery || []).map((url) => {
-      try {
-        const key = new URL(url).pathname.slice(1);
-        const command = new DeleteObjectCommand({
-          Bucket: bucket,
-          Key: key,
-        });
-
-        return s3.send(command);
-      } catch (err) {
-        return Promise.resolve();
-      }
-    })
-  );
-}
-
 router.post("/get-presigned-url", async (req, res) => {
   const { filename, contentType } = req.body;
   const bucket = config.get("s3BucketName");

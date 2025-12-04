@@ -5,7 +5,6 @@ const { Product, validate } = require("../models/product");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const { omit } = require("lodash");
-const { S3Client, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 
 router.get("/", async (req, res) => {
   const page = parseInt(req.query.page) || 1;

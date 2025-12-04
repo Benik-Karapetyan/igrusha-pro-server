@@ -1,5 +1,9 @@
 {
   "host": "",
   "jwtPrivateKey": "",
-  "db": ""
+  "db": "",
+  "awsRegion": "",
+  "s3BucketName": "",
+  "awsAccessKeyId": "",
+  "awsSecretAccessKey": ""
 }

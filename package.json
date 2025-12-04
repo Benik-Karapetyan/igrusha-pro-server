@@ -24,10 +24,10 @@
     "helmet": "^8.1.0",
     "joi": "^18.0.1",
     "joi-objectid": "^4.0.2",
+    "joi-password-complexity": "^5.2.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "mongoose": "^8.20.1",
-    "multer": "^2.0.2",
     "winston": "^3.18.3",
     "winston-mongodb": "^7.0.1"
   }
