@@ -19,7 +19,6 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: true,
-    unique: true,
     minlength: 12,
     maxlength: 12,
   },
@@ -65,7 +64,7 @@ const validateUser = (user) => {
       entrance: Joi.number().positive().optional(),
       floor: Joi.number().positive().optional(),
       apartment: Joi.number().positive().required(),
-      zip: Joi.string().optional(),
+      zip: Joi.string().max(50).allow("").optional(),
     },
   });
 

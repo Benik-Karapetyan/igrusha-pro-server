@@ -28,7 +28,7 @@ router.post("/sign-up", async (req, res) => {
   if (error) return res.status(400).send(error.message);
 
   let user = await User.findOne({ email: req.body.email });
-  if (user) return res.status(400).send("User already registered.");
+  if (user) return res.status(400).send("Email already in use.");
 
   user = new User({ ...req.body, isAdmin: false });
   const salt = await bcrypt.genSalt(10);
