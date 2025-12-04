@@ -38,6 +38,11 @@ const userSchema = new mongoose.Schema({
     apartment: { type: Number, required: true, positive: true, maxlength: 50 },
     zip: { type: String, required: false, maxlength: 50 },
   },
+  favorites: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Product",
+    default: [],
+  },
   isAdmin: Boolean,
 });
 
@@ -89,8 +94,17 @@ const validateSignIn = (req) => {
   return schema.validate(req);
 };
 
+const validateFavorite = (productId) => {
+  const schema = Joi.object({
+    productId: Joi.objectId().required(),
+  });
+
+  return schema.validate(productId);
+};
+
 module.exports = {
   User,
   validate: validateUser,
   validateSignIn,
+  validateFavorite,
 };
