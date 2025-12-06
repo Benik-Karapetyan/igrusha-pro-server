@@ -4,6 +4,7 @@ const auth = require("../routes/auth");
 const users = require("../routes/users");
 const products = require("../routes/products");
 const favorites = require("../routes/favorites");
+const carts = require("../routes/carts");
 const genres = require("../routes/genres");
 const customers = require("../routes/customers");
 const movies = require("../routes/movies");
@@ -41,6 +42,7 @@ module.exports = (app) => {
   app.use("/api/users", users);
   app.use("/api/products", products);
   app.use("/api/favorites", favorites);
+  app.use("/api/carts", carts);
   app.use("/api/genres", genres);
   app.use("/api/customers", customers);
   app.use("/api/movies", movies);
