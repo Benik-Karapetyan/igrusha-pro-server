@@ -20,6 +20,10 @@ const cartSchema = new mongoose.Schema({
         required: true,
         min: 1,
       },
+      selected: {
+        type: Boolean,
+        required: true,
+      },
     },
   ],
   createdAt: {
@@ -43,6 +47,7 @@ const validateCartItem = (item) => {
   const schema = Joi.object({
     productId: Joi.objectId().required(),
     quantity: Joi.number().integer().min(1).required(),
+    selected: Joi.boolean().required(),
   });
 
   return schema.validate(item);
@@ -53,6 +58,7 @@ const validateCartItems = (items) => {
     Joi.object({
       productId: Joi.objectId().required(),
       quantity: Joi.number().integer().min(1).required(),
+      selected: Joi.boolean().required(),
     })
   );
 
