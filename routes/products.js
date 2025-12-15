@@ -40,11 +40,17 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:id", async (req, res) => {
-  const product = await Product.findById(req.params.id)
+  let product = await Product.findById(req.params.id)
     .populate("variants")
     .populate("relatedProducts");
   if (!product)
     return res.status(404).send("The product with the given ID was not found.");
+
+  if (product.isVariantOf) {
+    product = await Product.findById(product.isVariantOf)
+      .populate("variants")
+      .populate("relatedProducts");
+  }
 
   res.send(product);
 });
