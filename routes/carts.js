@@ -6,10 +6,14 @@ const { User } = require("../models/user");
 const auth = require("../middleware/auth");
 
 router.get("/:userId", auth, async (req, res) => {
-  const cart = await Cart.findOne({ user: req.params.userId }).populate(
-    "items.productId",
-    "-__v"
-  );
+  const cart = await Cart.findOne({ user: req.params.userId }).populate({
+    path: "items.productId",
+    select: "-__v",
+    populate: {
+      path: "relatedProducts",
+      select: "-__v",
+    },
+  });
   if (!cart) return res.send({ user: req.params.userId, items: [] });
 
   res.send(cart);
