@@ -63,7 +63,14 @@ router.post("/:userId", auth, async (req, res) => {
   }
 
   await cart.save();
-  await cart.populate("items.productId", "-__v");
+  await cart.populate({
+    path: "items.productId",
+    select: "-__v",
+    populate: {
+      path: "relatedProducts",
+      select: "-__v",
+    },
+  });
 
   res.send(cart);
 });
