@@ -5,10 +5,8 @@ const users = require("../routes/users");
 const products = require("../routes/products");
 const favorites = require("../routes/favorites");
 const carts = require("../routes/carts");
-const genres = require("../routes/genres");
-const customers = require("../routes/customers");
-const movies = require("../routes/movies");
-const rentals = require("../routes/rentals");
+const checkouts = require("../routes/checkouts");
+const orders = require("../routes/orders");
 const uploads = require("../routes/uploads");
 const error = require("../middleware/error");
 
@@ -43,10 +41,8 @@ module.exports = (app) => {
   app.use("/api/products", products);
   app.use("/api/favorites", favorites);
   app.use("/api/carts", carts);
-  app.use("/api/genres", genres);
-  app.use("/api/customers", customers);
-  app.use("/api/movies", movies);
-  app.use("/api/rentals", rentals);
+  app.use("/api/checkouts", checkouts);
+  app.use("/api/orders", orders);
   app.use("/api/uploads", uploads);
   app.use(error);
 };
