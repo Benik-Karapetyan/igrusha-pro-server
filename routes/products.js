@@ -40,6 +40,10 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/:id", async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(404).send("The product with the given ID was not found.");
+  }
+
   let product = await Product.findById(req.params.id)
     .populate("variants")
     .populate("relatedProducts");
