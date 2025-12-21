@@ -37,7 +37,8 @@ router.get("/:id", auth, async (req, res) => {
     path: "items.productId",
     select: "-__v",
   });
-  if (!checkout) return res.status(404).send("Checkout not found.");
+  if (!checkout || checkout.status !== "active")
+    return res.status(404).send("Checkout not found.");
 
   res.send(checkout);
 });

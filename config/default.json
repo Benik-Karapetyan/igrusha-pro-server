@@ -5,5 +5,7 @@
   "awsRegion": "",
   "s3BucketName": "",
   "awsAccessKeyId": "",
-  "awsSecretAccessKey": ""
+  "awsSecretAccessKey": "",
+  "freeShippingThreshold": 10000,
+  "shippingFee": 700
 }

@@ -28,7 +28,7 @@ router.get("/", async (req, res) => {
     .sort({ createdAt: 1 })
     .skip(skip)
     .limit(pageSize)
-    .select("-__v");
+    .select("-__v -initialNumberInStock");
   const totalRecords = await Product.countDocuments(query);
 
   res.send({
@@ -64,6 +64,7 @@ router.post("/", async (req, res) => {
 
   const product = new Product({
     ...omit(req.body, !req.body?.isVariantOf ? "isVariantOf" : []),
+    initialNumberInStock: req.body.numberInStock,
     gallery: req.body.gallery.map(
       (file) =>
         `https://${config.get("s3BucketName")}.s3.${config.get(

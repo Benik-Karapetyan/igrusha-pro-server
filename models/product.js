@@ -2,6 +2,10 @@ const Joi = require("joi");
 const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema({
+  productNumber: {
+    type: String,
+    unique: true,
+  },
   gallery: {
     type: [String],
     required: true,
@@ -30,7 +34,43 @@ const productSchema = new mongoose.Schema({
   },
   price: { type: Number, required: true, min: 1 },
   discount: { type: Number, required: true, min: 0, max: 99 },
+  initialNumberInStock: { type: Number, required: true, min: 0 },
   numberInStock: { type: Number, required: true, min: 0 },
+  gender: {
+    type: String,
+    enum: ["unisex", "boy", "girl"],
+    required: true,
+  },
+  ageRange: {
+    type: Object,
+    required: true,
+    properties: {
+      from: { type: Number, required: true, min: 0 },
+      to: { type: Number, required: false },
+    },
+  },
+  size: {
+    type: Object,
+    required: false,
+    properties: {
+      width: { type: Number, required: true, min: 0 },
+      height: { type: Number, required: true, min: 0 },
+      height: { type: Number, required: true, min: 0 },
+    },
+  },
+  boxSize: {
+    type: Object,
+    required: false,
+    properties: {
+      length: { type: Number, required: true, min: 0 },
+      width: { type: Number, required: true, min: 0 },
+      height: { type: Number, required: true, min: 0 },
+    },
+  },
+  brand: {
+    type: String,
+    required: false,
+  },
   rating: { type: Number, required: true, min: 0, max: 5 },
   reviewCount: { type: Number, required: true, min: 0 },
   isPublished: { type: Boolean, default: false },
@@ -53,12 +93,38 @@ const productSchema = new mongoose.Schema({
   },
 });
 
-const Product = mongoose.model("Product", productSchema);
+productSchema.pre("save", async function (next) {
+  if (!this.productNumber && this.isNew) {
+    const genderMap = {
+      unisex: "01",
+      boy: "02",
+      girl: "03",
+    };
+    const genderCode = genderMap[this.gender] || "01";
 
-productSchema.pre("save", function (next) {
+    const ageMin = this.ageRange?.from || 0;
+    const ageMax = this.ageRange?.to || 0;
+    const ageRangeMin = String(ageMin);
+    const ageRangeMax = String(ageMax);
+
+    const now = this.createdAt || new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const dateString = `${year}${month}${day}`;
+
+    const ProductModel = mongoose.model("Product");
+    const productsCount = await ProductModel.countDocuments();
+    const sequentialNumber = String(productsCount + 1).padStart(4, "0");
+
+    this.productNumber = `${genderCode}${ageRangeMin}${ageRangeMax}${dateString}-${sequentialNumber}`;
+  }
+
   this.updatedAt = Date.now();
   next();
 });
+
+const Product = mongoose.model("Product", productSchema);
 
 const validateProduct = (product) => {
   const schema = Joi.object({
@@ -76,6 +142,22 @@ const validateProduct = (product) => {
     price: Joi.number().min(1).required(),
     discount: Joi.number().min(0).max(99).required(),
     numberInStock: Joi.number().min(0).required(),
+    gender: Joi.string().valid("unisex", "boy", "girl").required(),
+    ageRange: Joi.object({
+      from: Joi.number().min(0).required(),
+      to: Joi.number().min(0).optional(),
+    }).required(),
+    size: Joi.object({
+      length: Joi.number().min(0).required(),
+      width: Joi.number().min(0).required(),
+      height: Joi.number().min(0).required(),
+    }).optional(),
+    boxSize: Joi.object({
+      length: Joi.number().min(0).required(),
+      width: Joi.number().min(0).required(),
+      height: Joi.number().min(0).required(),
+    }).optional(),
+    brand: Joi.string().allow("").optional(),
     rating: Joi.number().min(0).max(5).required(),
     reviewCount: Joi.number().min(0).required(),
     isPublished: Joi.boolean(),
