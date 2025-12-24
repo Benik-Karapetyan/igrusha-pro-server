@@ -43,6 +43,7 @@ const userSchema = new mongoose.Schema({
     ref: "Product",
     default: [],
   },
+  termsAndConditions: { type: Boolean, required: true },
   isAdmin: Boolean,
 });
 
@@ -71,6 +72,7 @@ const validateUser = (user) => {
       apartment: Joi.number().positive().required(),
       zip: Joi.string().max(50).allow("").optional(),
     },
+    termsAndConditions: Joi.boolean().required(),
   });
 
   const { error: passwordError } = passwordComplexity(

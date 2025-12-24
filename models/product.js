@@ -107,17 +107,11 @@ productSchema.pre("save", async function (next) {
     const ageRangeMin = String(ageMin);
     const ageRangeMax = String(ageMax);
 
-    const now = this.createdAt || new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const dateString = `${year}${month}${day}`;
-
     const ProductModel = mongoose.model("Product");
     const productsCount = await ProductModel.countDocuments();
     const sequentialNumber = String(productsCount + 1).padStart(4, "0");
 
-    this.productNumber = `${genderCode}${ageRangeMin}${ageRangeMax}${dateString}-${sequentialNumber}`;
+    this.productNumber = `${genderCode}${ageRangeMin}${ageRangeMax}-${sequentialNumber}`;
   }
 
   this.updatedAt = Date.now();
