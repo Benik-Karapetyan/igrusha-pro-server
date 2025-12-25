@@ -11,15 +11,22 @@ const uploads = require("../routes/uploads");
 const error = require("../middleware/error");
 
 module.exports = (app) => {
-  app.use(
-    cors({
-      origin: [
+  const isProduction = process.env.NODE_ENV === "production";
+
+  const allowedOrigins = isProduction
+    ? [
+        "https://igrusha-pro-web.vercel.app",
+        "https://igrusha-pro-backoffice.vercel.app",
+      ]
+    : [
         "http://localhost:3000",
         "http://localhost:5200",
         "http://localhost:5201",
-        "https://igrusha-pro-web.vercel.app",
-        "https://igrusha-pro-backoffice.vercel.app",
-      ],
+      ];
+
+  app.use(
+    cors({
+      origin: allowedOrigins,
       credentials: true,
       exposedHeaders: ["x-auth-token"],
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
