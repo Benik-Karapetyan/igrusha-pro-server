@@ -15,7 +15,7 @@ module.exports = (app) => {
 
   const allowedOrigins = isProduction
     ? [
-        "https://www.igrusha.pro/",
+        "https://www.igrusha.pro",
         "https://igrusha-pro-web.vercel.app",
         "https://igrusha-pro-backoffice.vercel.app",
       ]
