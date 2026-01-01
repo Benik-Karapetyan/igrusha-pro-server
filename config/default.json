@@ -7,5 +7,5 @@
   "awsAccessKeyId": "",
   "awsSecretAccessKey": "",
   "freeShippingThreshold": 10000,
-  "shippingFee": 700
+  "shippingFee": 1000
 }
