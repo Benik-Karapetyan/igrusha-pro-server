@@ -10,7 +10,7 @@ const auth = require("../middleware/auth");
 
 router.get("/", auth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
-  const pageSize = parseInt(req.query.pageSize) || 100;
+  const pageSize = parseInt(req.query.pageSize) || 10;
   const skip = (page - 1) * pageSize;
 
   const checkouts = await Checkout.find()

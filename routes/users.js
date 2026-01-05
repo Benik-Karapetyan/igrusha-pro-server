@@ -3,6 +3,24 @@ const router = require("express").Router();
 const { User, validateFavorite } = require("../models/user");
 const { Product } = require("../models/product");
 
+router.get("/", auth, async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const skip = (page - 1) * pageSize;
+
+  const users = await User.find()
+    .skip(skip)
+    .limit(pageSize)
+    .select("-password -__v");
+  const totalRecords = await User.countDocuments();
+
+  res.send({
+    items: users,
+    totalPages: Math.ceil(totalRecords / pageSize),
+    totalRecords,
+  });
+});
+
 router.patch("/:id/favorites", auth, async (req, res) => {
   const { error } = validateFavorite(req.body);
   if (error) return res.status(400).send(error.message);
