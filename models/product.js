@@ -46,12 +46,12 @@ const productSchema = new mongoose.Schema({
     required: true,
     properties: {
       from: { type: Number, required: true, min: 0 },
-      to: { type: Number, required: false },
+      to: { type: Number, required: false, min: 0 },
     },
   },
   size: {
     type: Object,
-    required: false,
+    required: true,
     properties: {
       width: { type: Number, required: true, min: 0 },
       height: { type: Number, required: true, min: 0 },
@@ -62,9 +62,9 @@ const productSchema = new mongoose.Schema({
     type: Object,
     required: false,
     properties: {
-      length: { type: Number, required: true, min: 0 },
-      width: { type: Number, required: true, min: 0 },
-      height: { type: Number, required: true, min: 0 },
+      length: { type: Number, required: false, min: 0 },
+      width: { type: Number, required: false, min: 0 },
+      height: { type: Number, required: false, min: 0 },
     },
   },
   brand: {
@@ -145,11 +145,11 @@ const validateProduct = (product) => {
       length: Joi.number().min(0).required(),
       width: Joi.number().min(0).required(),
       height: Joi.number().min(0).required(),
-    }).optional(),
+    }).required(),
     boxSize: Joi.object({
-      length: Joi.number().min(0).required(),
-      width: Joi.number().min(0).required(),
-      height: Joi.number().min(0).required(),
+      length: Joi.number().min(0).optional(),
+      width: Joi.number().min(0).optional(),
+      height: Joi.number().min(0).optional(),
     }).optional(),
     brand: Joi.string().allow("").optional(),
     rating: Joi.number().min(0).max(5).required(),

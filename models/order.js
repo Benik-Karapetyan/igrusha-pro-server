@@ -64,6 +64,9 @@ const orderSchema = new mongoose.Schema({
         required: true,
         min: 1,
       },
+      discount: {
+        type: Number,
+      },
     },
   ],
 });
@@ -95,6 +98,7 @@ const validateOrder = (order) => {
         Joi.object({
           productId: Joi.objectId().required(),
           quantity: Joi.number().integer().min(1).required(),
+          discount: Joi.number().optional(),
         })
       )
       .required(),

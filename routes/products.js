@@ -12,6 +12,7 @@ router.get("/", async (req, res) => {
   const skip = (page - 1) * pageSize;
   const search = req.query.search || "";
   const sectionName = req.query.sectionName;
+  const sort = req.query.sort || "-createdAt";
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
@@ -25,7 +26,7 @@ router.get("/", async (req, res) => {
   const products = await Product.find(query)
     .populate("variants")
     .populate("relatedProducts")
-    .sort({ createdAt: 1 })
+    .sort(sort)
     .skip(skip)
     .limit(pageSize)
     .select("-__v -initialNumberInStock");

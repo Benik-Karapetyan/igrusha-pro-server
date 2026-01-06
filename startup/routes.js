@@ -7,6 +7,7 @@ const favorites = require("../routes/favorites");
 const carts = require("../routes/carts");
 const checkouts = require("../routes/checkouts");
 const orders = require("../routes/orders");
+const expenses = require("../routes/expenses");
 const uploads = require("../routes/uploads");
 const error = require("../middleware/error");
 
@@ -51,6 +52,7 @@ module.exports = (app) => {
   app.use("/api/carts", carts);
   app.use("/api/checkouts", checkouts);
   app.use("/api/orders", orders);
+  app.use("/api/expenses", expenses);
   app.use("/api/uploads", uploads);
   app.use(error);
 };
