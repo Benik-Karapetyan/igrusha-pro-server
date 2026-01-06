@@ -8,6 +8,7 @@ const expenseSchema = new mongoose.Schema({
       "products",
       "logistics",
       "tax",
+      "rent",
       "advertisement",
       "salary",
       "utilities",
@@ -44,6 +45,7 @@ const validateExpense = (expense) => {
         "products",
         "logistics",
         "tax",
+        "rent",
         "advertisement",
         "salary",
         "utilities"

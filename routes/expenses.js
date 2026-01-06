@@ -2,24 +2,57 @@ const router = require("express").Router();
 const { Expense, validate } = require("../models/expense");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
+const { startOfMonth, startOfDay, endOfDay } = require("date-fns");
 
 router.get("/", [auth, admin], async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const skip = (page - 1) * pageSize;
+  let types = req.query.types
+    ? Array.isArray(req.query.types)
+      ? req.query.types
+      : [req.query.types]
+    : [];
 
-  const expenses = await Expense.find()
+  const fromDate = req.query.from
+    ? startOfDay(new Date(req.query.from))
+    : startOfDay(startOfMonth(new Date()));
+
+  const toDate = req.query.to
+    ? endOfDay(new Date(req.query.to))
+    : endOfDay(new Date());
+
+  const query = {};
+
+  if (types.length) {
+    query.type = { $in: types };
+  }
+  query.createdAt = { $gte: fromDate, $lte: toDate };
+
+  const expenses = await Expense.find(query)
     .sort({ createdAt: 1 })
     .skip(skip)
     .limit(pageSize)
     .populate("createdBy", "-__v")
     .select("-__v");
-  const totalRecords = await Expense.countDocuments();
+  const totalRecords = await Expense.countDocuments(query);
+  const totalAmountResult = await Expense.aggregate([
+    { $match: query },
+    {
+      $group: {
+        _id: null,
+        totalAmount: { $sum: "$amount" },
+      },
+    },
+  ]);
+  const totalAmount =
+    totalAmountResult.length > 0 ? totalAmountResult[0].totalAmount : 0;
 
   res.send({
     items: expenses,
     totalPages: Math.ceil(totalRecords / pageSize),
     totalRecords,
+    totalAmount,
   });
 });
 
