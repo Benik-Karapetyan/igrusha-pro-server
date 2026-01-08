@@ -4,7 +4,12 @@ const mongoose = require("mongoose");
 const { Product } = require("../models/product");
 const { Cart } = require("../models/cart");
 const { Checkout } = require("../models/checkout");
-const { Order, validate, validateReason } = require("../models/order");
+const {
+  Order,
+  validate,
+  validateReason,
+  getDiscountedPrice,
+} = require("../models/order");
 const auth = require("../middleware/auth");
 
 router.get("/", auth, async (req, res) => {
@@ -113,7 +118,8 @@ router.post("/", auth, async (req, res) => {
         numberInStock: product.numberInStock,
       });
     }
-    totalAmount += product.price * requestedQty;
+    totalAmount +=
+      getDiscountedPrice(product.price, product.discount) * requestedQty;
   }
 
   if (totalAmount < config.get("freeShippingThreshold")) {
@@ -144,7 +150,11 @@ router.post("/", auth, async (req, res) => {
       userId: req.user._id,
       checkoutId: req.body.checkoutId,
       status: "onTheWay",
-      items: req.body.items,
+      items: products.map((product) => ({
+        productId: product._id,
+        quantity: requestedQtyByProductId[product._id.toString()],
+        discount: product.discount,
+      })),
       paymentMethod: req.body.paymentMethod,
       orderInstructions: req.body.orderInstructions,
       totalAmount,

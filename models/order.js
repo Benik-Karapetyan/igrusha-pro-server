@@ -116,8 +116,14 @@ const validateReason = (reason) => {
   return schema.validate(reason);
 };
 
+const getDiscountedPrice = (originalPrice, discountPercent) => {
+  const discountAmount = (originalPrice * discountPercent) / 100;
+  return originalPrice - discountAmount;
+};
+
 module.exports = {
   Order,
   validate: validateOrder,
   validateReason: validateReason,
+  getDiscountedPrice,
 };
