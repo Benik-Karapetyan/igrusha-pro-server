@@ -7,6 +7,7 @@ require("./startup/config")();
 require("./startup/db")();
 require("./startup/routes")(app);
 require("./startup/validation")();
+require("./startup/cron")();
 require("./startup/prod")(app);
 
 const port = process.env.PORT || 3001;
