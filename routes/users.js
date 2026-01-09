@@ -1,7 +1,9 @@
-const auth = require("../middleware/auth");
 const router = require("express").Router();
-const { User, validateFavorite } = require("../models/user");
+const { User, validate, validateFavorite } = require("../models/user");
 const { Product } = require("../models/product");
+const bcrypt = require("bcrypt");
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 
 router.get("/", auth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -19,6 +21,18 @@ router.get("/", auth, async (req, res) => {
     totalPages: Math.ceil(totalRecords / pageSize),
     totalRecords,
   });
+});
+
+router.post("/", auth, admin, async (req, res) => {
+  const { error } = validate(req.body);
+  if (error) return res.status(400).send(error.message);
+
+  const user = new User({ ...req.body, isAdmin: true });
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(user.password, salt);
+  await user.save();
+
+  res.send(user);
 });
 
 router.patch("/:id/favorites", auth, async (req, res) => {

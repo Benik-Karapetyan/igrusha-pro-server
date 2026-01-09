@@ -30,13 +30,10 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   password: { type: String, required: true, minlength: 60, maxlength: 256 },
-  address: {
-    street: { type: String, required: true, minlength: 3, maxlength: 100 },
-    building: { type: Number, required: true, positive: true, maxlength: 50 },
-    entrance: { type: Number, required: false, positive: true, maxlength: 50 },
-    floor: { type: Number, required: false, positive: true, maxlength: 50 },
-    apartment: { type: Number, required: true, positive: true, maxlength: 50 },
-    zip: { type: String, required: false, maxlength: 50 },
+  addresses: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Address",
+    default: [],
   },
   favorites: {
     type: [mongoose.Schema.Types.ObjectId],
@@ -64,14 +61,7 @@ const validateUser = (user) => {
     email: Joi.string().min(5).max(255).required().email(),
     phone: Joi.string().min(12).max(12).required(),
     password: Joi.string().required(),
-    address: {
-      street: Joi.string().min(3).max(100).required(),
-      building: Joi.number().positive().required(),
-      entrance: Joi.number().positive().optional(),
-      floor: Joi.number().positive().optional(),
-      apartment: Joi.number().positive().required(),
-      zip: Joi.string().max(50).allow("").optional(),
-    },
+    addresses: Joi.array().items(Joi.objectId()).default([]),
     termsAndConditions: Joi.boolean().required(),
   });
 

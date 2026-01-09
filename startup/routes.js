@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const auth = require("../routes/auth");
 const users = require("../routes/users");
+const addresses = require("../routes/addresses");
 const products = require("../routes/products");
 const favorites = require("../routes/favorites");
 const carts = require("../routes/carts");
@@ -47,6 +48,7 @@ module.exports = (app) => {
   app.use(express.static("public"));
   app.use("/api/auth", auth);
   app.use("/api/users", users);
+  app.use("/api/addresses", addresses);
   app.use("/api/products", products);
   app.use("/api/favorites", favorites);
   app.use("/api/carts", carts);
