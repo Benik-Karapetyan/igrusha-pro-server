@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema({
   checkoutId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Checkout",
-    required: true,
+    required: false,
   },
   orderNumber: {
     type: String,
@@ -28,6 +28,10 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     enum: ["card", "cash"],
+    required: true,
+  },
+  shippingFee: {
+    type: Number,
     required: true,
   },
   totalAmount: {
@@ -93,19 +97,38 @@ const validateOrder = (order) => {
   const schema = Joi.object({
     userId: Joi.objectId().required(),
     checkoutId: Joi.objectId().required(),
+    paymentMethod: Joi.string().valid("card", "cash").required(),
+    orderInstructions: Joi.string().optional().max(1024),
     items: Joi.array()
       .items(
         Joi.object({
           productId: Joi.objectId().required(),
           quantity: Joi.number().integer().min(1).required(),
-          discount: Joi.number().optional(),
         })
       )
       .required(),
-    paymentMethod: Joi.string().valid("card", "cash").required(),
-    orderInstructions: Joi.string().optional().max(1024),
   });
 
+  return schema.validate(order);
+};
+
+const validateAdminOrder = (order) => {
+  const schema = Joi.object({
+    userId: Joi.objectId().required(),
+    paymentMethod: Joi.string().valid("card", "cash").required(),
+    orderInstructions: Joi.string().optional().max(1024),
+    shippingFee: Joi.number().allow("").optional(),
+    items: Joi.array()
+      .items(
+        Joi.object({
+          productId: Joi.objectId().required(),
+          quantity: Joi.number().integer().min(1).required(),
+          discount: Joi.number().allow("").optional(),
+        })
+      )
+      .required(),
+    createdAt: Joi.date().allow("").optional(),
+  });
   return schema.validate(order);
 };
 
@@ -118,12 +141,13 @@ const validateReason = (reason) => {
 
 const getDiscountedPrice = (originalPrice, discountPercent) => {
   const discountAmount = (originalPrice * discountPercent) / 100;
-  return originalPrice - discountAmount;
+  return Number((originalPrice - discountAmount).toFixed(0));
 };
 
 module.exports = {
   Order,
   validate: validateOrder,
-  validateReason: validateReason,
+  validateAdminOrder,
+  validateReason,
   getDiscountedPrice,
 };

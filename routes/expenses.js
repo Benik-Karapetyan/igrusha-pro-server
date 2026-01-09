@@ -30,7 +30,7 @@ router.get("/", [auth, admin], async (req, res) => {
   query.createdAt = { $gte: fromDate, $lte: toDate };
 
   const expenses = await Expense.find(query)
-    .sort({ createdAt: 1 })
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize)
     .populate("createdBy", "-__v")
