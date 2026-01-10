@@ -13,10 +13,13 @@ router.get("/", async (req, res) => {
   const search = req.query.search || "";
   const sectionName = req.query.sectionName;
   const sort = req.query.sort || "-createdAt";
+  const includeIsVariantOf = req.query.includeIsVariantOf === "true";
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
-    $or: [{ isVariantOf: null }, { isVariantOf: { $exists: false } }],
+    $or: includeIsVariantOf
+      ? []
+      : [{ isVariantOf: null }, { isVariantOf: { $exists: false } }],
   };
 
   if (sectionName) {
