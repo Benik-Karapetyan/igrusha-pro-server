@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
-    $or: [{ isVariantOf: null }, { isVariantOf: { $exists: false } }],
+    // $or: [{ isVariantOf: null }, { isVariantOf: { $exists: false } }],
   };
 
   if (sectionName) {
