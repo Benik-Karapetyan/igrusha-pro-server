@@ -13,13 +13,34 @@ const {
 } = require("../models/order");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
+const { startOfMonth, startOfDay, endOfDay } = require("date-fns");
 
 router.get("/", auth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const skip = (page - 1) * pageSize;
+  let statuses = req.query.statuses
+    ? Array.isArray(req.query.statuses)
+      ? req.query.statuses
+      : [req.query.statuses]
+    : [];
 
-  const orders = await Order.find()
+  const fromDate = req.query.from
+    ? startOfDay(new Date(req.query.from))
+    : startOfDay(startOfMonth(new Date()));
+
+  const toDate = req.query.to
+    ? endOfDay(new Date(req.query.to))
+    : endOfDay(new Date());
+
+  const query = {};
+
+  if (statuses.length) {
+    query.status = { $in: statuses };
+  }
+  query.createdAt = { $gte: fromDate, $lte: toDate };
+
+  const orders = await Order.find(query)
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize)
@@ -32,8 +53,9 @@ router.get("/", auth, async (req, res) => {
       path: "items.productId",
       select: "-__v",
     });
-  const totalRecords = await Order.countDocuments();
+  const totalRecords = await Order.countDocuments(query);
   const totalAmountResult = await Order.aggregate([
+    { $match: { ...query, status: "delivered" } },
     {
       $group: {
         _id: null,
@@ -296,13 +318,185 @@ router.post("/admin", [auth, admin], async (req, res) => {
   }
 });
 
-router.patch("/:id/complete", auth, async (req, res) => {
+router.put("/:id/admin", [auth, admin], async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id))
+    return res.status(404).send("Order not found.");
+
+  const { error } = validateAdminOrder({
+    ...req.body,
+    userId: req.body.userId,
+  });
+  if (error) return res.status(400).send(error.message);
+
+  // Find existing order
+  const existingOrder = await Order.findById(req.params.id);
+  if (!existingOrder) return res.status(404).send("Order not found.");
+
+  // Prevent updating cancelled or returned orders
+  if (
+    existingOrder.status === "cancelled" ||
+    existingOrder.status === "returned"
+  ) {
+    return res.status(400).send("Cannot update cancelled or returned orders.");
+  }
+
+  const requestedQtyByProductId = {};
+  for (const item of req.body.items) {
+    const key = item.productId.toString();
+    requestedQtyByProductId[key] = item.quantity;
+  }
+  const requestedDiscountByProductId = {};
+  for (const item of req.body.items) {
+    const key = item.productId.toString();
+    requestedDiscountByProductId[key] = item.discount;
+  }
+
+  // Get old order items for stock return
+  const oldProductIds = existingOrder.items.map((item) => item.productId);
+
+  // Get new products
+  const newProductIds = req.body.items.map((item) => item.productId);
+
+  // Combine all unique product IDs (convert to strings for Set, then back to ObjectIds for query)
+  const allUniqueProductIdStrings = new Set([
+    ...oldProductIds.map((id) => id.toString()),
+    ...newProductIds.map((id) => id.toString()),
+  ]);
+
+  const allUniqueProductIds = Array.from(allUniqueProductIdStrings).map(
+    (id) => new mongoose.Types.ObjectId(id)
+  );
+
+  const products = await Product.find({
+    _id: { $in: allUniqueProductIds },
+  });
+
+  if (products.length !== allUniqueProductIdStrings.size) {
+    return res.status(404).send("One or more products not found.");
+  }
+
+  // Create a map for easy product lookup
+  const productMap = {};
+  for (const product of products) {
+    productMap[product._id.toString()] = product;
+  }
+
+  // Build map of old quantities for comparison
+  const oldQtyByProductId = {};
+  for (const item of existingOrder.items) {
+    oldQtyByProductId[item.productId.toString()] = item.quantity;
+  }
+
+  // Calculate stock changes: positive = return stock, negative = reduce stock
+  const stockChanges = {};
+  const outOfStockProducts = [];
+  let totalAmount = 0;
+
+  // Process new order items and calculate stock changes
+  for (const item of req.body.items) {
+    const productId = item.productId.toString();
+    const requestedQty = requestedQtyByProductId[productId];
+    const oldQty = oldQtyByProductId[productId] || 0;
+    const product = productMap[productId];
+    if (!product) continue;
+
+    // Calculate available stock: current stock + quantity being returned from old order
+    const availableStock = product.numberInStock + oldQty;
+
+    if (requestedQty > availableStock) {
+      outOfStockProducts.push({
+        productId: product._id,
+        numberInStock: availableStock,
+      });
+    }
+
+    // Net stock change: oldQty (being returned) - requestedQty (needed)
+    stockChanges[productId] = oldQty - requestedQty;
+
+    totalAmount +=
+      getDiscountedPrice(
+        product.price,
+        requestedDiscountByProductId[productId.toString()] || 0
+      ) * requestedQty;
+  }
+
+  // Handle products that were removed from order (return their stock)
+  for (const productId in oldQtyByProductId) {
+    if (!requestedQtyByProductId[productId]) {
+      // Product was removed, return all its stock
+      stockChanges[productId] = oldQtyByProductId[productId];
+    }
+  }
+
+  const shippingFee =
+    req.body.shippingFee === 0 || req.body.shippingFee
+      ? req.body.shippingFee
+      : totalAmount < config.get("freeShippingThreshold")
+      ? config.get("shippingFee")
+      : 0;
+  totalAmount += shippingFee;
+
+  if (outOfStockProducts.length > 0) {
+    return res.status(400).send({
+      products: outOfStockProducts,
+      message: "Insufficient stock",
+    });
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    // Update existing order
+    existingOrder.userId = req.body.userId;
+    existingOrder.checkoutId = req.body.checkoutId;
+    existingOrder.status = req.body.status || existingOrder.status;
+    existingOrder.items = req.body.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      discount: item.discount || 0,
+    }));
+    existingOrder.paymentMethod = req.body.paymentMethod;
+    existingOrder.orderInstructions = req.body.orderInstructions;
+    existingOrder.shippingFee = shippingFee;
+    existingOrder.totalAmount = totalAmount;
+    if (req.body.createdAt) existingOrder.createdAt = req.body.createdAt;
+    if (req.body.deliveredAt) existingOrder.deliveredAt = req.body.deliveredAt;
+
+    await session.withTransaction(async () => {
+      // Apply stock changes: positive values mean return stock, negative means reduce stock
+      for (const productId in stockChanges) {
+        const product = productMap[productId];
+        if (product) {
+          product.numberInStock += stockChanges[productId]; // Add negative value = subtract
+          await product.save({ session });
+        }
+      }
+
+      await existingOrder.save({ session });
+    });
+
+    await session.endSession();
+    await existingOrder.populate({
+      path: "items.productId",
+      select: "-__v",
+    });
+    await existingOrder.populate({
+      path: "userId",
+      select: "-__v",
+    });
+    res.send(existingOrder);
+  } catch (err) {
+    await session.endSession();
+    throw err;
+  }
+});
+
+router.patch("/:id/complete", [auth, admin], async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id))
     return res.status(404).send("Order not found.");
 
   const order = await Order.findOne({
     _id: req.params.id,
-    userId: req.user._id,
   });
   if (!order) return res.status(404).send("Order not found.");
 
@@ -382,7 +576,7 @@ router.patch("/:id/return", auth, async (req, res) => {
   res.send(order);
 });
 
-router.patch("/:id/confirm-return", auth, async (req, res) => {
+router.patch("/:id/confirm-return", [auth, admin], async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id))
     return res.status(404).send("Order not found.");
 
@@ -425,6 +619,73 @@ router.patch("/:id/confirm-return", auth, async (req, res) => {
   } catch (err) {
     await session.endSession();
     throw err;
+  }
+});
+
+router.delete("/:id", [auth, admin], async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id))
+    return res.status(404).send("Order not found.");
+
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).send("Order not found.");
+
+  const statusesNeedingStockReturn = ["onTheWay", "delivered", "returnPending"];
+  const shouldReturnStock = statusesNeedingStockReturn.includes(order.status);
+
+  if (shouldReturnStock) {
+    const productIds = order.items.map((item) => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    if (products.length !== productIds.length) {
+      return res.status(404).send("One or more products not found.");
+    }
+
+    const quantityByProductId = {};
+    for (const item of order.items) {
+      const key = item.productId.toString();
+      quantityByProductId[key] = item.quantity;
+    }
+
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        for (const product of products) {
+          const quantity = quantityByProductId[product._id.toString()];
+          product.numberInStock += quantity;
+          await product.save({ session });
+        }
+
+        if (order.checkoutId) {
+          await Checkout.deleteOne({ _id: order.checkoutId }, { session });
+        }
+
+        await Order.deleteOne({ _id: order._id }, { session });
+      });
+
+      await session.endSession();
+      res.sendStatus(204);
+    } catch (err) {
+      await session.endSession();
+      throw err;
+    }
+  } else {
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        if (order.checkoutId) {
+          await Checkout.deleteOne({ _id: order.checkoutId }, { session });
+        }
+
+        await Order.deleteOne({ _id: order._id }, { session });
+      });
+
+      await session.endSession();
+      res.sendStatus(204);
+    } catch (err) {
+      await session.endSession();
+      throw err;
+    }
   }
 });
 

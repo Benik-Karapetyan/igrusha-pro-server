@@ -106,6 +106,7 @@ const validateOrder = (order) => {
           quantity: Joi.number().integer().min(1).required(),
         })
       )
+      .min(1)
       .required(),
   });
 
@@ -126,6 +127,7 @@ const validateAdminOrder = (order) => {
           discount: Joi.number().allow("").optional(),
         })
       )
+      .min(1)
       .required(),
     createdAt: Joi.date().allow("").optional(),
   });

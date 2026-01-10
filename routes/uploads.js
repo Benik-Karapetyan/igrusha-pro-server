@@ -6,6 +6,8 @@ const {
   DeleteObjectCommand,
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 
 const s3 = new S3Client({
   region: config.get("awsRegion"),
@@ -15,7 +17,7 @@ const s3 = new S3Client({
   },
 });
 
-router.post("/get-presigned-url", async (req, res) => {
+router.post("/get-presigned-url", [auth, admin], async (req, res) => {
   const { filename, contentType } = req.body;
   const bucket = config.get("s3BucketName");
   const key = `uploads/${Date.now()}-${filename}`;
@@ -34,7 +36,7 @@ router.post("/get-presigned-url", async (req, res) => {
   res.send({ url, key });
 });
 
-router.put("/delete-images", async (req, res) => {
+router.put("/delete-images", [auth, admin], async (req, res) => {
   const bucket = config.get("s3BucketName");
 
   if (!req.body.gallery) {
