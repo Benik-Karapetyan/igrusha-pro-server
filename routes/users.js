@@ -27,7 +27,7 @@ router.post("/", [auth, admin], async (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send(error.message);
 
-  const user = new User({ ...req.body, isAdmin: true });
+  const user = new User({ ...req.body, isVerified: true, isAdmin: true });
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);
   await user.save();

@@ -5,5 +5,8 @@
   "awsRegion": "igrusha_pro_awsRegion",
   "s3BucketName": "igrusha_pro_s3BucketName",
   "awsAccessKeyId": "igrusha_pro_awsAccessKeyId",
-  "awsSecretAccessKey": "igrusha_pro_awsSecretAccessKey"
+  "awsSecretAccessKey": "igrusha_pro_awsSecretAccessKey",
+  "sendGridApiKey": "igrusha_pro_sendGridApiKey",
+  "emailFrom": "igrusha_pro_emailFrom",
+  "frontendUrl": "igrusha_pro_frontendUrl"
 }

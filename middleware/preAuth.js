@@ -9,9 +9,6 @@ module.exports = function (req, res, next) {
     const decoded = jwt.verify(token, config.get("jwtPrivateKey"));
     req.user = decoded;
 
-    if (!req.user.isVerified)
-      return res.status(401).send("Access denied. User not verified.");
-
     next();
   } catch (err) {
     res.status(400).send("Invalid token.");

@@ -25,7 +25,9 @@ router.get("/", async (req, res) => {
 
   const products = await Product.find({
     _id: { $in: productIds },
-  }).select("-__v");
+  })
+    .populate("relatedProducts")
+    .select("-__v");
 
   res.send(products);
 });

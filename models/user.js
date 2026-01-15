@@ -14,11 +14,10 @@ const complexityOptions = {
 };
 
 const userSchema = new mongoose.Schema({
-  firstName: { type: String, required: true, minlength: 5, maxlength: 50 },
-  lastName: { type: String, required: true, minlength: 5, maxlength: 50 },
+  firstName: { type: String, minlength: 5, maxlength: 50 },
+  lastName: { type: String, minlength: 5, maxlength: 50 },
   phone: {
     type: String,
-    required: true,
     minlength: 12,
     maxlength: 12,
   },
@@ -42,11 +41,14 @@ const userSchema = new mongoose.Schema({
   },
   termsAndConditions: { type: Boolean, required: true },
   isAdmin: Boolean,
+  isVerified: { type: Boolean, default: false },
+  verificationCode: { type: String, minlength: 6, maxlength: 6 },
+  verificationCodeExpiry: { type: Date },
 });
 
 userSchema.methods.generateAuthToken = function () {
   const token = jwt.sign(
-    { _id: this._id, isAdmin: this.isAdmin },
+    { _id: this._id, isVerified: this.isVerified, isAdmin: this.isAdmin },
     config.get("jwtPrivateKey")
   );
   return token;
@@ -77,6 +79,35 @@ const validateUser = (user) => {
   return schema.validate(user);
 };
 
+const validateSignUp = (user) => {
+  const schema = Joi.object({
+    email: Joi.string().min(5).max(255).required().email(),
+    password: Joi.string().required(),
+    termsAndConditions: Joi.boolean().required(),
+  });
+
+  const { error: passwordError } = passwordComplexity(
+    complexityOptions
+  ).validate(user.password);
+
+  if (passwordError && passwordError.details.length)
+    return {
+      error: { message: passwordError.details[0].message },
+    };
+
+  return schema.validate(user);
+};
+
+const validateFinishSignUp = (user) => {
+  const schema = Joi.object({
+    firstName: Joi.string().min(3).max(50).required(),
+    lastName: Joi.string().min(3).max(50).required(),
+    phone: Joi.string().min(12).max(12).required(),
+  });
+
+  return schema.validate(user);
+};
+
 const validateSignIn = (req) => {
   const schema = Joi.object({
     email: Joi.string().min(5).max(255).required().email(),
@@ -98,5 +129,7 @@ module.exports = {
   User,
   validate: validateUser,
   validateSignIn,
+  validateSignUp,
+  validateFinishSignUp,
   validateFavorite,
 };

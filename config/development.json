@@ -3,5 +3,7 @@
   "jwtPrivateKey": "test_jwtPrivateKey",
   "db": "mongodb://localhost:27017/igrusha_pro",
   "awsRegion": "eu-north-1",
-  "s3BucketName": "igrusha-pro-demo-bucket"
+  "s3BucketName": "igrusha-pro-demo-bucket",
+  "emailFrom": "noreply@igrusha.pro",
+  "frontendUrl": "http://localhost:3000"
 }

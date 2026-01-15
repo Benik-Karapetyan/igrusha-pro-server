@@ -6,6 +6,9 @@
   "s3BucketName": "",
   "awsAccessKeyId": "",
   "awsSecretAccessKey": "",
+  "sendGridApiKey": "",
+  "emailFrom": "",
+  "frontendUrl": "",
   "freeShippingThreshold": 10000,
   "shippingFee": 1000
 }
