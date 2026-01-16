@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const Joi = require("joi");
 const mongoose = require("mongoose");
 const passwordComplexity = require("joi-password-complexity");
+const { AddressSchema } = require("./address");
 
 const complexityOptions = {
   min: 8,
@@ -10,7 +11,6 @@ const complexityOptions = {
   lowerCase: 1,
   upperCase: 1,
   numeric: 1,
-  symbol: 1,
 };
 
 const userSchema = new mongoose.Schema({
@@ -29,6 +29,9 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   password: { type: String, required: true, minlength: 60, maxlength: 256 },
+  address: {
+    type: AddressSchema,
+  },
   addresses: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: "Address",

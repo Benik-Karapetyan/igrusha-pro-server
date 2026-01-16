@@ -60,11 +60,7 @@ router.post("/sign-up", async (req, res) => {
     verificationCodeExpiry,
   });
 
-  await sendVerificationEmail(
-    "benik.karapetyan1@gmail.com",
-    verificationCode,
-    user.firstName
-  );
+  await sendVerificationEmail(user.email, verificationCode);
 
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);

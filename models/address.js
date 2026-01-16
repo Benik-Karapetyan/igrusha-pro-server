@@ -1,7 +1,7 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
 
-const addressSchema = new mongoose.Schema({
+const AddressSchema = new mongoose.Schema({
   street: { type: String, required: true, minlength: 3, maxlength: 100 },
   building: { type: Number, required: true, positive: true },
   entrance: { type: Number, required: false, positive: true },
@@ -10,7 +10,7 @@ const addressSchema = new mongoose.Schema({
   zip: { type: String, required: false, maxlength: 10 },
 });
 
-const Address = mongoose.model("Address", addressSchema);
+const Address = mongoose.model("Address", AddressSchema);
 
 const validateAddress = (address) => {
   const schema = Joi.object({
@@ -27,5 +27,6 @@ const validateAddress = (address) => {
 
 module.exports = {
   Address,
+  AddressSchema,
   validate: validateAddress,
 };
