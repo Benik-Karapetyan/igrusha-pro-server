@@ -14,13 +14,6 @@ const complexityOptions = {
 };
 
 const userSchema = new mongoose.Schema({
-  firstName: { type: String, minlength: 5, maxlength: 50 },
-  lastName: { type: String, minlength: 5, maxlength: 50 },
-  phone: {
-    type: String,
-    minlength: 12,
-    maxlength: 12,
-  },
   email: {
     type: String,
     required: true,
@@ -29,6 +22,17 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   password: { type: String, required: true, minlength: 60, maxlength: 256 },
+  termsAndConditions: { type: Boolean, required: true },
+  firstName: { type: String, minlength: 5, maxlength: 50 },
+  lastName: { type: String, minlength: 5, maxlength: 50 },
+  phone: {
+    type: String,
+    minlength: 12,
+    maxlength: 12,
+  },
+  isVerified: { type: Boolean, default: false },
+  verificationCode: { type: String, minlength: 6, maxlength: 6 },
+  verificationCodeExpiry: { type: Date },
   address: {
     type: AddressSchema,
   },
@@ -42,11 +46,7 @@ const userSchema = new mongoose.Schema({
     ref: "Product",
     default: [],
   },
-  termsAndConditions: { type: Boolean, required: true },
   isAdmin: Boolean,
-  isVerified: { type: Boolean, default: false },
-  verificationCode: { type: String, minlength: 6, maxlength: 6 },
-  verificationCodeExpiry: { type: Date },
 });
 
 userSchema.methods.generateAuthToken = function () {
@@ -61,13 +61,13 @@ const User = mongoose.model("User", userSchema);
 
 const validateUser = (user) => {
   const schema = Joi.object({
+    email: Joi.string().min(5).max(255).required().email(),
+    password: Joi.string().required(),
+    termsAndConditions: Joi.boolean().required(),
     firstName: Joi.string().min(3).max(50).required(),
     lastName: Joi.string().min(3).max(50).required(),
-    email: Joi.string().min(5).max(255).required().email(),
     phone: Joi.string().min(12).max(12).required(),
-    password: Joi.string().required(),
     addresses: Joi.array().items(Joi.objectId()).default([]),
-    termsAndConditions: Joi.boolean().required(),
   });
 
   const { error: passwordError } = passwordComplexity(
