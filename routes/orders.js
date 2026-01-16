@@ -1,6 +1,7 @@
 const config = require("config");
 const router = require("express").Router();
 const mongoose = require("mongoose");
+const { Address } = require("../models/address");
 const { Product } = require("../models/product");
 const { Cart } = require("../models/cart");
 const { Checkout } = require("../models/checkout");
@@ -14,6 +15,7 @@ const {
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const { startOfMonth, startOfDay, endOfDay } = require("date-fns");
+const { omit } = require("lodash");
 
 router.get("/", auth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -119,7 +121,11 @@ router.get("/:id", auth, async (req, res) => {
 });
 
 router.post("/", auth, async (req, res) => {
-  const { error } = validate({ ...req.body, userId: req.user._id });
+  const { error } = validate({
+    ...req.body,
+    address: omit(req.body.address, "_id"),
+    userId: req.user._id,
+  });
   if (error) return res.status(400).send(error.message);
 
   const checkout = await Checkout.findOne({
@@ -129,6 +135,12 @@ router.post("/", auth, async (req, res) => {
   if (!checkout || checkout.status !== "active")
     return res.status(404).send("Checkout not found.");
   checkout.status = "completed";
+
+  const address = await Address.findOne({
+    _id: req.body.address._id,
+    userId: req.user._id,
+  });
+  if (!address) return res.status(404).send("Address not found.");
 
   const requestedQtyByProductId = {};
   for (const item of req.body.items) {
@@ -171,14 +183,14 @@ router.post("/", auth, async (req, res) => {
   }
 
   const cart = await Cart.findOne({ user: req.user._id });
-  if (!cart) return res.status(404).send("Cart not found.");
-
-  const productIdSet = new Set(
-    productIds.map((id) => new mongoose.Types.ObjectId(id).toString())
-  );
-  cart.items = cart.items.filter(
-    (item) => !productIdSet.has(item.productId.toString())
-  );
+  if (cart) {
+    const productIdSet = new Set(
+      productIds.map((id) => new mongoose.Types.ObjectId(id).toString())
+    );
+    cart.items = cart.items.filter(
+      (item) => !productIdSet.has(item.productId.toString())
+    );
+  }
 
   const session = await mongoose.startSession();
 
@@ -187,10 +199,11 @@ router.post("/", auth, async (req, res) => {
       userId: req.user._id,
       checkoutId: req.body.checkoutId,
       status: "onTheWay",
+      address,
       paymentMethod: req.body.paymentMethod,
-      orderInstructions: req.body.orderInstructions,
       shippingFee,
       totalAmount,
+      orderInstructions: req.body.orderInstructions,
       items: products.map((product) => ({
         productId: product._id,
         quantity: requestedQtyByProductId[product._id.toString()],
@@ -205,7 +218,7 @@ router.post("/", auth, async (req, res) => {
         await product.save({ session });
       }
 
-      await cart.save({ session });
+      if (cart) await cart.save({ session });
       await checkout.save({ session });
       await order.save({ session });
     });
@@ -225,6 +238,11 @@ router.post("/", auth, async (req, res) => {
 router.post("/admin", [auth, admin], async (req, res) => {
   const { error } = validateAdminOrder({ ...req.body, userId: req.user._id });
   if (error) return res.status(400).send(error.message);
+
+  const address = await Address.findOne({
+    _id: req.body.address._id,
+    userId: req.user._id,
+  });
 
   const requestedQtyByProductId = {};
   for (const item of req.body.items) {
@@ -283,15 +301,16 @@ router.post("/admin", [auth, admin], async (req, res) => {
       userId: req.user._id,
       checkoutId: req.body.checkoutId,
       status: "delivered",
+      address,
+      paymentMethod: req.body.paymentMethod,
+      shippingFee,
+      totalAmount,
+      orderInstructions: req.body.orderInstructions,
       items: products.map((product) => ({
         productId: product._id,
         quantity: requestedQtyByProductId[product._id.toString()],
         discount: requestedDiscountByProductId[product._id.toString()],
       })),
-      paymentMethod: req.body.paymentMethod,
-      orderInstructions: req.body.orderInstructions,
-      shippingFee,
-      totalAmount,
       ...(req.body.createdAt ? { createdAt: req.body.createdAt } : {}),
       ...(req.body.createdAt ? { deliveredAt: req.body.createdAt } : {}),
     });

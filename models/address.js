@@ -21,21 +21,20 @@ const AddressSchema = new mongoose.Schema({
 
 const Address = mongoose.model("Address", AddressSchema);
 
-const validateAddress = (address) => {
-  const schema = Joi.object({
-    street: Joi.string().min(3).max(100).required(),
-    building: Joi.number().positive().required(),
-    entrance: Joi.number().positive().optional(),
-    floor: Joi.number().positive().optional(),
-    apartment: Joi.number().positive().optional(),
-    zip: Joi.string().max(10).optional(),
-  });
+const addressJoiSchema = Joi.object({
+  street: Joi.string().min(3).max(100).required(),
+  building: Joi.number().positive().required(),
+  entrance: Joi.number().positive().optional(),
+  floor: Joi.number().positive().optional(),
+  apartment: Joi.number().positive().optional(),
+  zip: Joi.string().max(10).optional(),
+});
 
-  return schema.validate(address);
-};
+const validateAddress = (address) => addressJoiSchema.validate(address);
 
 module.exports = {
   Address,
   AddressSchema,
+  addressJoiSchema,
   validate: validateAddress,
 };

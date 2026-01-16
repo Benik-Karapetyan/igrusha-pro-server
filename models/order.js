@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
+const { AddressSchema, addressJoiSchema } = require("./address");
 
 const orderSchema = new mongoose.Schema({
   userId: {
@@ -24,6 +25,9 @@ const orderSchema = new mongoose.Schema({
   orderInstructions: {
     type: String,
     max: 1024,
+  },
+  address: {
+    type: AddressSchema,
   },
   paymentMethod: {
     type: String,
@@ -99,11 +103,13 @@ const validateOrder = (order) => {
     checkoutId: Joi.objectId().required(),
     paymentMethod: Joi.string().valid("card", "cash").required(),
     orderInstructions: Joi.string().optional().max(1024),
+    address: addressJoiSchema.required(),
     items: Joi.array()
       .items(
         Joi.object({
           productId: Joi.objectId().required(),
           quantity: Joi.number().integer().min(1).required(),
+          discount: Joi.number().allow("").optional(),
         })
       )
       .min(1)
