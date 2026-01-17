@@ -53,8 +53,15 @@ router.get("/", auth, async (req, res) => {
     })
     .populate({
       path: "items.productId",
-      select: "-__v",
+      select: "-__v -discount",
     });
+  for (const order of orders) {
+    for (const item of order.items) {
+      if (item.productId) {
+        item.productId.discount = item.discount;
+      }
+    }
+  }
   const totalRecords = await Order.countDocuments(query);
   const totalAmountResult = await Order.aggregate([
     { $match: { ...query, status: "delivered" } },
@@ -88,8 +95,15 @@ router.get("/user/:id", auth, async (req, res) => {
     .select("-__v")
     .populate({
       path: "items.productId",
-      select: "-__v",
+      select: "-__v -discount",
     });
+  for (const order of orders) {
+    for (const item of order.items) {
+      if (item.productId) {
+        item.productId.discount = item.discount;
+      }
+    }
+  }
   const totalRecords = await Order.countDocuments({ userId: req.params.id });
 
   res.send({
@@ -109,13 +123,19 @@ router.get("/:id", auth, async (req, res) => {
   })
     .populate({
       path: "items.productId",
-      select: "-__v",
+      select: "-__v -discount",
     })
     .populate({
       path: "checkoutId",
       select: "-__v",
     });
   if (!order) return res.status(404).send("Order not found.");
+
+  for (const item of order.items) {
+    if (item.productId) {
+      item.productId.discount = item.discount;
+    }
+  }
 
   res.send(order);
 });
@@ -239,10 +259,13 @@ router.post("/admin", [auth, admin], async (req, res) => {
   const { error } = validateAdminOrder({ ...req.body, userId: req.user._id });
   if (error) return res.status(400).send(error.message);
 
-  const address = await Address.findOne({
-    _id: req.body.address._id,
-    userId: req.user._id,
-  });
+  let address = undefined;
+  if (req.body.address) {
+    address = await Address.findOne({
+      _id: req.body.address._id,
+      userId: req.user._id,
+    });
+  }
 
   const requestedQtyByProductId = {};
   for (const item of req.body.items) {
@@ -301,7 +324,7 @@ router.post("/admin", [auth, admin], async (req, res) => {
       userId: req.user._id,
       checkoutId: req.body.checkoutId,
       status: "delivered",
-      address,
+      address: address || undefined,
       paymentMethod: req.body.paymentMethod,
       shippingFee,
       totalAmount,
