@@ -17,6 +17,15 @@ const AddressSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+AddressSchema.pre("save", function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 const Address = mongoose.model("Address", AddressSchema);

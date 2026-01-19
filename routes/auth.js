@@ -1,7 +1,6 @@
 const router = require("express").Router();
 const {
   User,
-  validate,
   validateSignIn,
   validateSignUp,
   validateFinishSignUp,

@@ -24,7 +24,7 @@ router.get("/", auth, async (req, res) => {
   });
 });
 
-router.get("/:userId", auth, async (req, res) => {
+router.get("/user/:userId", auth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const skip = (page - 1) * pageSize;
@@ -34,7 +34,7 @@ router.get("/:userId", auth, async (req, res) => {
     .sort(sort)
     .skip(skip)
     .limit(pageSize)
-    .select("-__v");
+    .select("-__v -userId -createdAt -updatedAt");
   const totalRecords = await Address.countDocuments({
     userId: req.params.userId,
   });
@@ -51,7 +51,10 @@ router.get("/:id", auth, async (req, res) => {
     return res.status(404).send("The address with the given ID was not found.");
   }
 
-  const address = await Address.findById(req.params.id).select("-__v");
+  const address = await Address.findOne({
+    _id: req.params.id,
+    userId: req.user._id,
+  }).select("-__v");
   if (!address)
     return res.status(404).send("The address with the given ID was not found.");
 
@@ -98,14 +101,38 @@ router.put("/:id", auth, async (req, res) => {
     return res.status(404).send("The address with the given ID was not found.");
   }
 
-  const address = await Address.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-  }).select("-__v");
+  const address = await Address.findOne({
+    _id: req.params.id,
+    userId: req.user._id,
+  });
   if (!address)
     return res.status(404).send("The address with the given ID was not found.");
 
-  res.send(address);
+  address.set({ ...req.body, userId: req.user._id });
+
+  const user = await User.findById(req.user._id);
+
+  if (user.address._id.toString() === address._id.toString()) {
+    user.address = address;
+
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await address.save({ session });
+        await user.save({ session });
+      });
+
+      await session.endSession();
+      res.send(address);
+    } catch (err) {
+      await session.endSession();
+      throw err;
+    }
+  } else {
+    await address.save();
+    res.send(address);
+  }
 });
 
 router.patch("/:id/set-default", auth, async (req, res) => {
