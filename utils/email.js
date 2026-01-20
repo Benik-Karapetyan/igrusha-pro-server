@@ -96,25 +96,17 @@ const sendVerificationEmail = async (email, verificationCode) => {
 
   try {
     await sgMail.send(msg);
-    console.log(`Verification email sent to ${email}`);
   } catch (error) {
-    console.error("Error sending verification email:", error);
-    if (error.response) {
-      console.error("SendGrid error details:", error.response.body);
-    }
     throw new Error("Failed to send verification email");
   }
 };
 
-const sendPasswordResetEmail = async (email, resetToken, userName) => {
-  const frontendUrl = config.get("frontendUrl");
-  const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-
+const sendPasswordResetEmail = async (email, resetToken) => {
   const msg = {
     to: email,
     from: config.get("emailFrom"),
     subject: "Password Reset Request - igrusha.pro",
-    text: `Hello ${userName},\n\nYou requested to reset your password.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.\n\nBest regards,\nigrusha.pro Team`,
+    text: `Hello Dear User,\n\nYou requested to reset your password.\n\nEnter this reset code in the app:\n\n${resetToken}\n\nThis code will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.\n\nBest regards,\nigrusha.pro Team`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -166,15 +158,28 @@ const sendPasswordResetEmail = async (email, resetToken, userName) => {
               <h1>Password Reset Request</h1>
             </div>
             <div class="content">
-              <p>Hello ${userName},</p>
+              <p>Hello Dear User,</p>
               <p>We received a request to reset your password for your <strong>igrusha.pro</strong> account.</p>
-              <p>Click the button below to reset your password:</p>
+              <p>Enter this reset code in the app:</p>
               <div style="text-align: center;">
-                <a href="${resetUrl}" class="button">Reset Password</a>
+                <div
+                  style="
+                    display: inline-block;
+                    padding: 12px 24px;
+                    margin: 16px 0;
+                    background-color: #ffffff;
+                    border: 1px dashed #FF5722;
+                    border-radius: 6px;
+                    font-size: 20px;
+                    font-weight: bold;
+                    letter-spacing: 2px;
+                    color: #FF5722;
+                  "
+                >
+                  ${resetToken}
+                </div>
               </div>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #FF5722;">${resetUrl}</p>
-              <p><strong>Note:</strong> This link will expire in 1 hour.</p>
+              <p><strong>Note:</strong> This code will expire in 1 hour.</p>
               <p>If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
               <p>Best regards,<br>The igrusha.pro Team</p>
             </div>
@@ -189,12 +194,7 @@ const sendPasswordResetEmail = async (email, resetToken, userName) => {
 
   try {
     await sgMail.send(msg);
-    console.log(`Password reset email sent to ${email}`);
   } catch (error) {
-    console.error("Error sending password reset email:", error);
-    if (error.response) {
-      console.error("SendGrid error details:", error.response.body);
-    }
     throw new Error("Failed to send password reset email");
   }
 };

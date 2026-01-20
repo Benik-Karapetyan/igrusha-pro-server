@@ -4,12 +4,16 @@ const {
   validateSignIn,
   validateSignUp,
   validateFinishSignUp,
+  validatePassword,
 } = require("../models/user");
 const bcrypt = require("bcrypt");
 const preAuth = require("../middleware/preAuth");
 const crypto = require("crypto");
 const { pick, omit } = require("lodash");
-const { sendVerificationEmail } = require("../utils/email");
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} = require("../utils/email");
 
 router.get("/me", preAuth, async (req, res) => {
   const user = await User.findById(req.user._id).select(
@@ -77,7 +81,6 @@ router.post("/verify-email", preAuth, async (req, res) => {
   if (!code) return res.status(400).send("Verification code is required.");
 
   const user = await User.findOne({ verificationCode: code });
-
   if (!user) return res.status(400).send("invalidCode");
 
   if (user.verificationCodeExpiry < new Date()) {
@@ -134,6 +137,84 @@ router.post("/finish-sign-up", preAuth, async (req, res) => {
   res.send(
     omit(user, ["password", "verificationCode", "verificationCodeExpiry"])
   );
+});
+
+router.post("/reset-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).send("Email is required.");
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).send("No account found with this email.");
+  if (!user.isVerified)
+    return res.status(400).send("This email is not verified.");
+
+  const verificationCode = crypto.randomInt(100000, 999999).toString();
+  const verificationCodeExpiry = new Date(Date.now() + 30 * 60 * 1000);
+
+  user.verificationCode = verificationCode;
+  user.verificationCodeExpiry = verificationCodeExpiry;
+  user.eligibleForResetPassword = true;
+  await user.save();
+
+  await sendPasswordResetEmail(user.email, verificationCode);
+  res.send("Password reset email has been sent. Please check your inbox.");
+});
+
+router.post("/verify-reset-password", async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).send("Verification code is required.");
+
+  const user = await User.findOne({ verificationCode: code });
+  if (!user) return res.status(400).send("invalidCode");
+
+  if (user.verificationCodeExpiry < new Date()) {
+    return res.status(400).send("verificationCodeExpired");
+  }
+
+  user.verificationCode = undefined;
+  user.verificationCodeExpiry = undefined;
+  await user.save();
+
+  res.send("Password reset code verified successfully.");
+});
+
+router.post("/resend-reset-password-code", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).send("Email is required.");
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).send("No account found with this email.");
+
+  const verificationCode = crypto.randomInt(100000, 999999).toString();
+  const verificationCodeExpiry = new Date(Date.now() + 30 * 60 * 1000);
+
+  user.verificationCode = verificationCode;
+  user.verificationCodeExpiry = verificationCodeExpiry;
+  user.eligibleForResetPassword = true;
+  await user.save();
+
+  await sendPasswordResetEmail(user.email, verificationCode);
+
+  res.send("Password reset email has been resent. Please check your inbox.");
+});
+
+router.post("/change-password", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password)
+    return res.status(400).send("Email and password are required.");
+
+  const user = await User.findOne({ email });
+  if (!user || !user.eligibleForResetPassword)
+    return res.status(404).send("User not found.");
+
+  const { error } = validatePassword(password);
+  if (error) return res.status(400).send(error.message);
+
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(password, salt);
+  await user.save();
+
+  res.send("Password changed successfully.");
 });
 
 module.exports = router;

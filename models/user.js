@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema({
     maxlength: 12,
   },
   isVerified: { type: Boolean, default: false },
+  eligibleForResetPassword: { type: Boolean },
   verificationCode: { type: String, minlength: 6, maxlength: 6 },
   verificationCodeExpiry: { type: Date },
   address: {
@@ -82,6 +83,18 @@ const validateUser = (user) => {
   return schema.validate(user);
 };
 
+const validatePassword = (password) => {
+  const { error: passwordError } =
+    passwordComplexity(complexityOptions).validate(password);
+
+  if (passwordError && passwordError.details.length)
+    return {
+      error: { message: passwordError.details[0].message },
+    };
+
+  return { error: null };
+};
+
 const validateSignUp = (user) => {
   const schema = Joi.object({
     email: Joi.string().min(5).max(255).required().email(),
@@ -89,14 +102,8 @@ const validateSignUp = (user) => {
     termsAndConditions: Joi.boolean().required(),
   });
 
-  const { error: passwordError } = passwordComplexity(
-    complexityOptions
-  ).validate(user.password);
-
-  if (passwordError && passwordError.details.length)
-    return {
-      error: { message: passwordError.details[0].message },
-    };
+  const { error: passwordError } = validatePassword(user.password);
+  if (passwordError) return passwordError;
 
   return schema.validate(user);
 };
@@ -134,5 +141,6 @@ module.exports = {
   validateSignIn,
   validateSignUp,
   validateFinishSignUp,
+  validatePassword,
   validateFavorite,
 };
