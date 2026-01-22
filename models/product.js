@@ -45,7 +45,6 @@ const ProductSchema = new mongoose.Schema({
   cost: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true, min: 1 },
   discount: { type: Number, required: true, min: 0, max: 99 },
-  initialNumberInStock: { type: Number, required: true, min: 0 },
   numberInStock: { type: Number, required: true, min: 0 },
   sectionName: { type: String, required: true },
   gender: {
