@@ -1,7 +1,7 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
 
-const checkoutSchema = new mongoose.Schema({
+const CheckoutSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -42,12 +42,12 @@ const checkoutSchema = new mongoose.Schema({
   },
 });
 
-checkoutSchema.pre("save", function (next) {
+CheckoutSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-const Checkout = mongoose.model("Checkout", checkoutSchema);
+const Checkout = mongoose.model("Checkout", CheckoutSchema);
 
 const validateCheckout = (checkout) => {
   const schema = Joi.object({

@@ -1,7 +1,7 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
 
-const productSchema = new mongoose.Schema({
+const ProductSchema = new mongoose.Schema({
   productNumber: {
     type: String,
     unique: true,
@@ -12,6 +12,16 @@ const productSchema = new mongoose.Schema({
     validate: {
       validator: (v) => Array.isArray(v) && v.length > 0,
       message: "Gallery must contain at least one image",
+    },
+  },
+  urlName: {
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator: (v) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v),
+      message:
+        "URL name must contain only lowercase letters, numbers, and hyphens",
     },
   },
   name: {
@@ -32,10 +42,12 @@ const productSchema = new mongoose.Schema({
       en: { type: String, required: true },
     },
   },
+  cost: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true, min: 1 },
   discount: { type: Number, required: true, min: 0, max: 99 },
   initialNumberInStock: { type: Number, required: true, min: 0 },
   numberInStock: { type: Number, required: true, min: 0 },
+  sectionName: { type: String, required: true },
   gender: {
     type: String,
     enum: ["unisex", "boy", "girl"],
@@ -85,7 +97,6 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
   },
-  sectionName: { type: String, required: true },
   relatedProducts: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: "Product",
@@ -93,7 +104,7 @@ const productSchema = new mongoose.Schema({
   },
 });
 
-productSchema.pre("save", async function (next) {
+ProductSchema.pre("save", async function (next) {
   if (!this.productNumber && this.isNew) {
     const genderMap = {
       unisex: "01",
@@ -101,7 +112,6 @@ productSchema.pre("save", async function (next) {
       girl: "03",
     };
     const genderCode = genderMap[this.gender] || "01";
-
     const ageMin = this.ageRange?.from || 0;
     const ageMax = this.ageRange?.to || 0;
     const ageRangeMin = String(ageMin);
@@ -118,11 +128,14 @@ productSchema.pre("save", async function (next) {
   next();
 });
 
-const Product = mongoose.model("Product", productSchema);
+const Product = mongoose.model("Product", ProductSchema);
 
 const validateProduct = (product) => {
   const schema = Joi.object({
     gallery: Joi.array().items(Joi.string()).min(1).required(),
+    urlName: Joi.string()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .required(),
     name: Joi.object({
       am: Joi.string().min(1).required(),
       ru: Joi.string().min(1).required(),
@@ -133,9 +146,11 @@ const validateProduct = (product) => {
       ru: Joi.string().min(1).required(),
       en: Joi.string().min(1).required(),
     }).required(),
+    cost: Joi.number().min(1).required(),
     price: Joi.number().min(1).required(),
     discount: Joi.number().min(0).max(99).required(),
     numberInStock: Joi.number().min(0).required(),
+    sectionName: Joi.string().min(1).required(),
     gender: Joi.string().valid("unisex", "boy", "girl").required(),
     ageRange: Joi.object({
       from: Joi.number().min(0).required(),
@@ -158,7 +173,6 @@ const validateProduct = (product) => {
     createdAt: Joi.date().optional(),
     variants: Joi.array().items(Joi.objectId()).default([]),
     isVariantOf: Joi.objectId().allow("").optional(),
-    sectionName: Joi.string().min(1).required(),
     relatedProducts: Joi.array().items(Joi.objectId()).default([]),
   });
 

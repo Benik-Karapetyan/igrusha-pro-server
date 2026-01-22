@@ -2,7 +2,7 @@ const Joi = require("joi");
 const mongoose = require("mongoose");
 const { AddressSchema, addressJoiSchema } = require("./address");
 
-const orderSchema = new mongoose.Schema({
+const OrderSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -79,7 +79,7 @@ const orderSchema = new mongoose.Schema({
   ],
 });
 
-orderSchema.pre("save", async function (next) {
+OrderSchema.pre("save", async function (next) {
   if (!this.orderNumber && this.isNew) {
     const now = this.createdAt || new Date();
     const year = now.getFullYear();
@@ -95,7 +95,7 @@ orderSchema.pre("save", async function (next) {
   next();
 });
 
-const Order = mongoose.model("Order", orderSchema);
+const Order = mongoose.model("Order", OrderSchema);
 
 const validateOrder = (order) => {
   const schema = Joi.object({

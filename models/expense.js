@@ -1,7 +1,7 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
 
-const expenseSchema = new mongoose.Schema({
+const ExpenseSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
@@ -36,7 +36,7 @@ const expenseSchema = new mongoose.Schema({
   },
 });
 
-const Expense = mongoose.model("Expense", expenseSchema);
+const Expense = mongoose.model("Expense", ExpenseSchema);
 
 const validateExpense = (expense) => {
   const schema = Joi.object({

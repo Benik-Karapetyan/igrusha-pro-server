@@ -1,7 +1,7 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
 
-const cartSchema = new mongoose.Schema({
+const CartSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -36,12 +36,12 @@ const cartSchema = new mongoose.Schema({
   },
 });
 
-cartSchema.pre("save", function (next) {
+CartSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-const Cart = mongoose.model("Cart", cartSchema);
+const Cart = mongoose.model("Cart", CartSchema);
 
 const validateCartItem = (item) => {
   const schema = Joi.object({

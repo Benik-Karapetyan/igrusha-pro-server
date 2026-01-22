@@ -13,7 +13,7 @@ const complexityOptions = {
   numeric: 1,
 };
 
-const userSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema({
   isAdmin: Boolean,
 });
 
-userSchema.methods.generateAuthToken = function () {
+UserSchema.methods.generateAuthToken = function () {
   const token = jwt.sign(
     { _id: this._id, isVerified: this.isVerified, isAdmin: this.isAdmin },
     config.get("jwtPrivateKey")
@@ -58,7 +58,7 @@ userSchema.methods.generateAuthToken = function () {
   return token;
 };
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", UserSchema);
 
 const validateUser = (user) => {
   const schema = Joi.object({

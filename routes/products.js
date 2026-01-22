@@ -6,6 +6,11 @@ const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const { omit } = require("lodash");
 
+router.delete("/allNumberInStock", [auth, admin], async (req, res) => {
+  await Product.updateMany({}, { $unset: { initialNumberInStock: "" } });
+  res.send("All initial number in stock field removed");
+});
+
 router.get("/", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
@@ -32,7 +37,7 @@ router.get("/", async (req, res) => {
     .sort(sort)
     .skip(skip)
     .limit(pageSize)
-    .select("-__v -initialNumberInStock");
+    .select("-__v");
   const totalRecords = await Product.countDocuments(query);
 
   res.send({
@@ -68,7 +73,6 @@ router.post("/", [auth, admin], async (req, res) => {
 
   const product = new Product({
     ...omit(req.body, !req.body?.isVariantOf ? "isVariantOf" : []),
-    initialNumberInStock: req.body.numberInStock,
     gallery: req.body.gallery.map(
       (file) =>
         `https://${config.get("s3BucketName")}.s3.${config.get(
