@@ -53,7 +53,7 @@ router.get("/", auth, async (req, res) => {
     })
     .populate({
       path: "items.productId",
-      select: "-__v -discount",
+      select: "-__v -discount -cost",
     });
   for (const order of orders) {
     for (const item of order.items) {
@@ -95,7 +95,7 @@ router.get("/user/:id", auth, async (req, res) => {
     .select("-__v")
     .populate({
       path: "items.productId",
-      select: "-__v -discount",
+      select: "-__v -discount -cost",
     });
   for (const order of orders) {
     for (const item of order.items) {
@@ -123,7 +123,7 @@ router.get("/:id", auth, async (req, res) => {
   })
     .populate({
       path: "items.productId",
-      select: "-__v -discount",
+      select: "-__v -discount -cost",
     })
     .populate({
       path: "checkoutId",
@@ -246,7 +246,7 @@ router.post("/", auth, async (req, res) => {
     await session.endSession();
     await order.populate({
       path: "items.productId",
-      select: "-__v",
+      select: "-__v -cost",
     });
     res.send(order);
   } catch (err) {
@@ -351,7 +351,7 @@ router.post("/admin", [auth, admin], async (req, res) => {
     await session.endSession();
     await order.populate({
       path: "items.productId",
-      select: "-__v",
+      select: "-__v -cost",
     });
     res.send(order);
   } catch (err) {
@@ -520,7 +520,7 @@ router.put("/:id/admin", [auth, admin], async (req, res) => {
     await session.endSession();
     await existingOrder.populate({
       path: "items.productId",
-      select: "-__v",
+      select: "-__v -cost",
     });
     await existingOrder.populate({
       path: "userId",

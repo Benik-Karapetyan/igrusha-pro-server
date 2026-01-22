@@ -27,12 +27,12 @@ router.get("/", async (req, res) => {
   }
 
   const products = await Product.find(query)
-    .populate("variants")
-    .populate("relatedProducts")
+    .populate({ path: "variants", select: "-__v -cost" })
+    .populate({ path: "relatedProducts", select: "-__v -cost" })
     .sort(sort)
     .skip(skip)
     .limit(pageSize)
-    .select("-__v");
+    .select("-__v -cost");
   const totalRecords = await Product.countDocuments(query);
 
   res.send({
@@ -42,21 +42,21 @@ router.get("/", async (req, res) => {
   });
 });
 
-router.get("/:id", async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(404).send("The product with the given ID was not found.");
-  }
-
-  let product = await Product.findById(req.params.id)
-    .populate("variants")
-    .populate("relatedProducts");
+router.get("/:urlName", async (req, res) => {
+  const product = await Product.findOne({ urlName: req.params.urlName })
+    .populate({ path: "variants", select: "-__v -cost" })
+    .populate({ path: "relatedProducts", select: "-__v -cost" })
+    .select("-__v -cost");
   if (!product)
-    return res.status(404).send("The product with the given ID was not found.");
+    return res
+      .status(404)
+      .send("The product with the given URL name was not found.");
 
   if (product.isVariantOf) {
     product = await Product.findById(product.isVariantOf)
-      .populate("variants")
-      .populate("relatedProducts");
+      .populate({ path: "variants", select: "-__v -cost" })
+      .populate({ path: "relatedProducts", select: "-__v -cost" })
+      .select("-__v -cost");
   }
 
   res.send(product);
@@ -65,6 +65,9 @@ router.get("/:id", async (req, res) => {
 router.post("/", [auth, admin], async (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send(error.message);
+
+  const urlName = await Product.findOne({ urlName: req.body.urlName });
+  if (urlName) return res.status(400).send("URL name already exists.");
 
   const product = new Product({
     ...omit(req.body, !req.body?.isVariantOf ? "isVariantOf" : []),
@@ -111,6 +114,11 @@ router.put("/:id", [auth, admin], async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product)
     return res.status(404).send("The product with the given ID was not found.");
+
+  if (product.urlName !== req.body.urlName) {
+    const urlName = await Product.findOne({ urlName: req.body.urlName });
+    if (urlName) return res.status(400).send("URL name already exists.");
+  }
 
   let oldIsVariantOf = product.isVariantOf;
 

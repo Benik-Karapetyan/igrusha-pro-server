@@ -26,8 +26,8 @@ router.get("/", async (req, res) => {
   const products = await Product.find({
     _id: { $in: productIds },
   })
-    .populate("relatedProducts")
-    .select("-__v");
+    .populate({ path: "relatedProducts", select: "-__v -cost" })
+    .select("-__v -cost");
 
   res.send(products);
 });

@@ -35,7 +35,7 @@ router.get("/:id", auth, async (req, res) => {
     userId: req.user._id,
   }).populate({
     path: "items.productId",
-    select: "-__v",
+    select: "-__v -cost",
   });
   if (!checkout || checkout.status !== "active")
     return res.status(404).send("Checkout not found.");
