@@ -155,14 +155,16 @@ router.get("/:id/related", async (req, res) => {
   if (!product)
     return res.status(404).send("The product with the given ID was not found.");
 
-  const sameCategoryProducts = await Product.find({
-    categories: { $in: product.categories },
-    _id: { $ne: product._id },
-    isPublished: true,
-  })
-    .populate({ path: "categories", select: "-__v" })
-    .select("-__v -cost");
-  product.relatedProducts.push(...sameCategoryProducts);
+  if (!product.relatedProducts.length) {
+    const sameCategoryProducts = await Product.find({
+      categories: { $in: product.categories },
+      _id: { $ne: product._id },
+      isPublished: true,
+    })
+      .populate({ path: "categories", select: "-__v" })
+      .select("-__v -cost");
+    product.relatedProducts.push(...sameCategoryProducts);
+  }
 
   res.send(product.relatedProducts.filter((product) => product.isPublished));
 });
@@ -198,7 +200,7 @@ router.get("/:urlName/meta", async (req, res) => {
 });
 
 router.get("/:urlName", async (req, res) => {
-  let product = await Product.findById(req.params.urlName)
+  let product = await Product.findOne({ urlName: req.params.urlName })
     .populate({ path: "categories", select: "-__v" })
     .select("-__v -cost");
   if (!product)
