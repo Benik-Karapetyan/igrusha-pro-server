@@ -54,6 +54,7 @@ router.get("/", auth, async (req, res) => {
     .populate({
       path: "items.productId",
       select: "-__v -discount -cost",
+      populate: [{ path: "categories", select: "-__v" }],
     });
   for (const order of orders) {
     for (const item of order.items) {
@@ -96,6 +97,7 @@ router.get("/user/:id", auth, async (req, res) => {
     .populate({
       path: "items.productId",
       select: "-__v -discount -cost",
+      populate: { path: "categories", select: "-__v" },
     });
   for (const order of orders) {
     for (const item of order.items) {
@@ -115,7 +117,7 @@ router.get("/user/:id", auth, async (req, res) => {
 
 router.get("/:id", auth, async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id))
-    return res.status(404).send("Checkout not found.");
+    return res.status(404).send("Order not found.");
 
   const order = await Order.findOne({
     _id: req.params.id,

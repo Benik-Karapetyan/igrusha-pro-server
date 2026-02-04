@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
   const products = await Product.find({
     _id: { $in: productIds },
   })
-    .populate({ path: "relatedProducts", select: "-__v -cost" })
+    .populate({ path: "categories", select: "-__v" })
     .select("-__v -cost");
 
   res.send(products);
@@ -42,7 +42,9 @@ router.post("/:userId", auth, async (req, res) => {
   const { error } = validateProductIds(productIds);
   if (error) return res.status(400).send(error.message);
 
-  const products = await Product.find({ _id: { $in: productIds } });
+  const products = await Product.find({ _id: { $in: productIds } })
+    .populate({ path: "categories", select: "-__v" })
+    .select("-__v -cost");
   if (products.length !== productIds.length) {
     return res.status(404).send("One or more products not found.");
   }

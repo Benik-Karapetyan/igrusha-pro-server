@@ -12,8 +12,15 @@ router.get("/", async (req, res) => {
   const skip = (page - 1) * pageSize;
   const search = req.query.search || "";
   const sectionName = req.query.sectionName;
-  const sort = req.query.sort || "-createdAt";
+  const categories = req.query.categories;
+  const priceMin = req.query.priceMin;
+  const priceMax = req.query.priceMax;
+  const gender = req.query.gender;
+  const ageFrom = req.query.ageFrom;
+  const ageTo = req.query.ageTo;
   const includeIsVariantOf = req.query.includeIsVariantOf === "true";
+  const hasSection = req.query.hasSection === "true";
+  let sort = req.query.sort;
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
@@ -22,23 +29,73 @@ router.get("/", async (req, res) => {
       : [{ isVariantOf: null }, { isVariantOf: { $exists: false } }],
   };
 
-  if (sectionName) {
+  if (categories) {
+    const categoryList = Array.isArray(categories) ? categories : [categories];
+
+    query.categories = { $in: categoryList };
+  } else if (sectionName) {
     query.sectionName = sectionName;
+  } else if (hasSection) {
+    query.sectionName = { $exists: true, $nin: [null, ""] };
   }
 
+  if (gender) {
+    query.gender = { $in: [...new Set([gender, "unisex"])] };
+    sort += " gender";
+  }
+
+  if (ageFrom && ageTo) {
+    const ageFromNumber = Number(ageFrom);
+    const ageToNumber = Number(ageTo);
+
+    if (!Number.isNaN(ageFromNumber) && !Number.isNaN(ageToNumber)) {
+      const ageRangeOr = {
+        $or: [
+          { "ageRange.from": { $gte: ageFromNumber, $lte: ageToNumber } },
+          { "ageRange.to": { $gte: ageFromNumber, $lte: ageToNumber } },
+        ],
+      };
+      query.$and = query.$and ? query.$and.concat(ageRangeOr) : [ageRangeOr];
+    }
+  } else if (ageFrom) {
+    const ageRangeOr = {
+      $or: [
+        { "ageRange.from": { $gte: Number(ageFrom) } },
+        { "ageRange.to": { $exists: false } },
+      ],
+    };
+    query.$and = query.$and ? query.$and.concat(ageRangeOr) : [ageRangeOr];
+  }
+
+  if (priceMin && priceMax) {
+    query.price = { $gte: priceMin, $lte: priceMax };
+  }
+
+  query.isPublished = true;
+
   const products = await Product.find(query)
-    .populate({ path: "variants", select: "-__v -cost" })
-    .populate({ path: "relatedProducts", select: "-__v -cost" })
+    .populate({ path: "categories", select: "-__v" })
     .sort(sort)
     .skip(skip)
     .limit(pageSize)
     .select("-__v -cost");
   const totalRecords = await Product.countDocuments(query);
+  const priceStats = await Product.aggregate([
+    { $match: omit(query, "price", "categories") },
+    {
+      $group: {
+        _id: null,
+        maxPrice: { $max: "$price" },
+      },
+    },
+  ]);
+  const maxPrice = priceStats[0]?.maxPrice || null;
 
   res.send({
     items: products,
     totalPages: Math.ceil(totalRecords / pageSize),
     totalRecords,
+    maxPrice,
   });
 });
 
@@ -63,7 +120,6 @@ router.get("/back-office", [auth, admin], async (req, res) => {
   }
 
   const products = await Product.find(query)
-    .populate({ path: "variants", select: "-__v" })
     .populate({ path: "relatedProducts", select: "-__v" })
     .sort(sort)
     .skip(skip)
@@ -78,22 +134,86 @@ router.get("/back-office", [auth, admin], async (req, res) => {
   });
 });
 
-router.get("/:id", async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(404).send("The product with the given ID was not found.");
-  }
-
-  let product = await Product.findById(req.params.id)
-    .populate({ path: "variants", select: "-__v -cost" })
-    .populate({ path: "relatedProducts", select: "-__v -cost" })
-    .select("-__v -cost");
+router.get("/:id/variants", async (req, res) => {
+  const product = await Product.findById(req.params.id).populate({
+    path: "variants",
+    select: "-__v -cost",
+    populate: { path: "categories", select: "-__v" },
+  });
   if (!product)
     return res.status(404).send("The product with the given ID was not found.");
 
+  res.send(product.variants);
+});
+
+router.get("/:id/related", async (req, res) => {
+  const product = await Product.findById(req.params.id).populate({
+    path: "relatedProducts",
+    select: "-__v -cost",
+    populate: { path: "categories", select: "-__v" },
+  });
+  if (!product)
+    return res.status(404).send("The product with the given ID was not found.");
+
+  const sameCategoryProducts = await Product.find({
+    categories: { $in: product.categories },
+    _id: { $ne: product._id },
+    isPublished: true,
+  })
+    .populate({ path: "categories", select: "-__v" })
+    .select("-__v -cost");
+  product.relatedProducts.push(...sameCategoryProducts);
+
+  res.send(product.relatedProducts.filter((product) => product.isPublished));
+});
+
+router.get("/related", async (req, res) => {
+  const idsParam = req.query.ids;
+  const ids = Array.isArray(idsParam) ? idsParam : [idsParam.toString()];
+
+  const products = await Product.find({
+    _id: { $in: ids },
+    isPublished: true,
+  })
+    .populate({ path: "categories", select: "-__v" })
+    .select("-__v -cost");
+  if (!products || products.length === 0)
+    return res
+      .status(404)
+      .send("The products with the given IDs were not found.");
+
+  res.send(products);
+});
+
+router.get("/:urlName/meta", async (req, res) => {
+  let product = await Product.findOne({ urlName: req.params.urlName }).select(
+    "name description"
+  );
+  if (!product)
+    return res
+      .status(404)
+      .send("The product with the given URL name was not found.");
+
+  res.send(product);
+});
+
+router.get("/:urlName", async (req, res) => {
+  let product = await Product.findById(req.params.urlName)
+    .populate({ path: "categories", select: "-__v" })
+    .select("-__v -cost");
+  if (!product)
+    return res
+      .status(404)
+      .send("The product with the given URL name was not found.");
+
   if (product.isVariantOf) {
     product = await Product.findById(product.isVariantOf)
-      .populate({ path: "variants", select: "-__v -cost" })
-      .populate({ path: "relatedProducts", select: "-__v -cost" })
+      .populate({ path: "categories", select: "-__v" })
+      .populate({
+        path: "variants",
+        select: "-__v -cost",
+        populate: { path: "categories", select: "-__v" },
+      })
       .select("-__v -cost");
   }
 
@@ -205,6 +325,17 @@ router.put("/:id", [auth, admin], async (req, res) => {
     await product.save();
     res.send(product);
   }
+});
+
+router.patch("/:id/publish", [auth, admin], async (req, res) => {
+  const product = await Product.findById(req.params.id);
+  if (!product)
+    return res.status(404).send("The product with the given ID was not found.");
+
+  product.isPublished = req.body.isPublished;
+  await product.save();
+
+  res.send(product);
 });
 
 router.delete("/:id", [auth, admin], async (req, res) => {

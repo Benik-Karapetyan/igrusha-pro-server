@@ -24,6 +24,15 @@ const ProductSchema = new mongoose.Schema({
         "URL name must contain only lowercase letters, numbers, and hyphens",
     },
   },
+  categories: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Category",
+    required: true,
+    validate: {
+      validator: (v) => Array.isArray(v) && v.length > 0,
+      message: "Categories must contain at least one category",
+    },
+  },
   name: {
     type: Object,
     required: true,
@@ -46,7 +55,7 @@ const ProductSchema = new mongoose.Schema({
   price: { type: Number, required: true, min: 1 },
   discount: { type: Number, required: true, min: 0, max: 99 },
   numberInStock: { type: Number, required: true, min: 0 },
-  sectionName: { type: String, required: true },
+  sectionName: { type: String },
   gender: {
     type: String,
     enum: ["unisex", "boy", "girl"],
@@ -62,11 +71,11 @@ const ProductSchema = new mongoose.Schema({
   },
   size: {
     type: Object,
-    required: true,
+    required: false,
     properties: {
-      width: { type: Number, required: true, min: 0 },
-      height: { type: Number, required: true, min: 0 },
-      height: { type: Number, required: true, min: 0 },
+      width: { type: Number, required: false, min: 0 },
+      height: { type: Number, required: false, min: 0 },
+      height: { type: Number, required: false, min: 0 },
     },
   },
   boxSize: {
@@ -135,6 +144,7 @@ const validateProduct = (product) => {
     urlName: Joi.string()
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .required(),
+    categories: Joi.array().items(Joi.objectId()).min(1).required(),
     name: Joi.object({
       am: Joi.string().min(1).required(),
       ru: Joi.string().min(1).required(),
@@ -149,17 +159,17 @@ const validateProduct = (product) => {
     price: Joi.number().min(1).required(),
     discount: Joi.number().min(0).max(99).required(),
     numberInStock: Joi.number().min(0).required(),
-    sectionName: Joi.string().min(1).required(),
+    sectionName: Joi.string().allow(""),
     gender: Joi.string().valid("unisex", "boy", "girl").required(),
     ageRange: Joi.object({
       from: Joi.number().min(0).required(),
       to: Joi.number().min(0).optional(),
     }).required(),
     size: Joi.object({
-      length: Joi.number().min(0).required(),
-      width: Joi.number().min(0).required(),
-      height: Joi.number().min(0).required(),
-    }).required(),
+      length: Joi.number().min(0).optional(),
+      width: Joi.number().min(0).optional(),
+      height: Joi.number().min(0).optional(),
+    }).optional(),
     boxSize: Joi.object({
       length: Joi.number().min(0).optional(),
       width: Joi.number().min(0).optional(),
