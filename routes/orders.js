@@ -610,6 +610,14 @@ router.patch("/:id/return", auth, async (req, res) => {
   });
   if (!order) return res.status(404).send("Order not found.");
 
+  const orderReturnExpiry = new Date(new Date(order.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000);
+  if (new Date() > orderReturnExpiry)
+    return res
+      .status(400)
+      .send(
+        "Return period has expired. Returns are only allowed within 2 days of delivering the order."
+      );
+
   const { error } = validateReason(req.body);
   if (error) return res.status(400).send(error.message);
 
