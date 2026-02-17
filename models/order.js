@@ -1,6 +1,7 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
 const { AddressSchema, addressJoiSchema } = require("./address");
+const { getNextOrderSequence } = require("./counter");
 
 const OrderSchema = new mongoose.Schema({
   userId: {
@@ -87,9 +88,10 @@ OrderSchema.pre("save", async function (next) {
     const day = String(now.getDate()).padStart(2, "0");
     const dateString = `${year}${month}${day}`;
 
-    const ordersCount = await mongoose.model("Order").countDocuments();
-
-    const sequentialNumber = String(ordersCount + 1).padStart(4, "0");
+    const session = this.$session();
+    const sequentialNumber = String(
+      await getNextOrderSequence(session)
+    ).padStart(4, "0");
     this.orderNumber = `${dateString}-${sequentialNumber}`;
   }
   next();

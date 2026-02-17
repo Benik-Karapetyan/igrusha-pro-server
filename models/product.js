@@ -1,5 +1,6 @@
 const Joi = require("joi");
 const mongoose = require("mongoose");
+const { getNextProductSequence } = require("./counter");
 
 const ProductSchema = new mongoose.Schema({
   productNumber: {
@@ -91,6 +92,7 @@ const ProductSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  detailsCount: { type: Number, required: false, min: 0 },
   rating: { type: Number, required: true, min: 0, max: 5 },
   reviewCount: { type: Number, required: true, min: 0 },
   isPublished: { type: Boolean, default: false },
@@ -125,9 +127,10 @@ ProductSchema.pre("save", async function (next) {
     const ageRangeMin = String(ageMin);
     const ageRangeMax = String(ageMax);
 
-    const ProductModel = mongoose.model("Product");
-    const productsCount = await ProductModel.countDocuments();
-    const sequentialNumber = String(productsCount + 1).padStart(4, "0");
+    const session = this.$session();
+    const sequentialNumber = String(
+      await getNextProductSequence(session)
+    ).padStart(4, "0");
 
     this.productNumber = `${genderCode}${ageRangeMin}${ageRangeMax}-${sequentialNumber}`;
   }
@@ -176,6 +179,7 @@ const validateProduct = (product) => {
       height: Joi.number().min(0).optional(),
     }).optional(),
     brand: Joi.string().allow("").optional(),
+    detailsCount: Joi.number().min(0).optional(),
     rating: Joi.number().min(0).max(5).required(),
     reviewCount: Joi.number().min(0).required(),
     isPublished: Joi.boolean(),
