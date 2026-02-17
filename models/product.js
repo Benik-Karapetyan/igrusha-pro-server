@@ -179,7 +179,7 @@ const validateProduct = (product) => {
       height: Joi.number().min(0).optional(),
     }).optional(),
     brand: Joi.string().allow("").optional(),
-    detailsCount: Joi.number().min(0).optional(),
+    detailsCount: Joi.number().min(0).allow("").optional(),
     rating: Joi.number().min(0).max(5).required(),
     reviewCount: Joi.number().min(0).required(),
     isPublished: Joi.boolean(),
