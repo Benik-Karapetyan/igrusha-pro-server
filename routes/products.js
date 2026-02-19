@@ -46,7 +46,17 @@ router.get("/", async (req, res) => {
 
   if (gender) {
     query.gender = { $in: [...new Set([gender, "unisex"])] };
-    if (!hasSortField("gender")) sortTokens.push("gender");
+    const shouldPrioritizeRequestedGender = ["boy", "girl"].includes(gender);
+
+    if (shouldPrioritizeRequestedGender) {
+      const sortTokensWithoutGender = sortTokens.filter(
+        (token) => token.replace(/^-/, "") !== "gender"
+      );
+      sortTokens.length = 0;
+      sortTokens.push("gender", ...sortTokensWithoutGender);
+    } else if (!hasSortField("gender")) {
+      sortTokens.push("gender");
+    }
   }
 
   if (ageFrom && ageTo) {
