@@ -20,7 +20,12 @@ router.get("/", async (req, res) => {
   const ageTo = req.query.ageTo;
   const includeIsVariantOf = req.query.includeIsVariantOf === "true";
   const hasSection = req.query.hasSection === "true";
-  let sort = req.query.sort;
+  const sortParam =
+    typeof req.query.sort === "string" ? req.query.sort.trim() : "";
+  const sortTokens = sortParam ? sortParam.split(/\s+/).filter(Boolean) : [];
+  if (!sortTokens.length) sortTokens.push("createdAt");
+  const hasSortField = (fieldName) =>
+    sortTokens.some((token) => token.replace(/^-/, "") === fieldName);
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
@@ -41,7 +46,7 @@ router.get("/", async (req, res) => {
 
   if (gender) {
     query.gender = { $in: [...new Set([gender, "unisex"])] };
-    sort += " gender";
+    if (!hasSortField("gender")) sortTokens.push("gender");
   }
 
   if (ageFrom && ageTo) {
@@ -72,6 +77,8 @@ router.get("/", async (req, res) => {
   }
 
   query.isPublished = true;
+  if (!hasSortField("_id")) sortTokens.push("_id");
+  const sort = sortTokens.join(" ");
 
   const products = await Product.find(query)
     .populate({ path: "categories", select: "-__v" })
