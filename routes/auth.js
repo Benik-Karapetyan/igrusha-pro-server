@@ -9,7 +9,8 @@ const {
 const bcrypt = require("bcrypt");
 const preAuth = require("../middleware/preAuth");
 const crypto = require("crypto");
-const { pick, omit } = require("lodash");
+const pick = require("lodash/pick");
+const omit = require("lodash/omit");
 const {
   sendVerificationEmail,
   sendPasswordResetEmail,

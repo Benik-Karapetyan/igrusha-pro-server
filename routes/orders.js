@@ -15,7 +15,7 @@ const {
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const { startOfMonth, startOfDay, endOfDay } = require("date-fns");
-const { omit } = require("lodash");
+const omit = require("lodash/omit");
 
 router.get("/", auth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -610,7 +610,9 @@ router.patch("/:id/return", auth, async (req, res) => {
   });
   if (!order) return res.status(404).send("Order not found.");
 
-  const orderReturnExpiry = new Date(new Date(order.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000);
+  const orderReturnExpiry = new Date(
+    new Date(order.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000
+  );
   if (new Date() > orderReturnExpiry)
     return res
       .status(400)

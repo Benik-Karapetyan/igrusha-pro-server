@@ -27,7 +27,7 @@ router.get("/", async (req, res) => {
 router.get("/:urlName", async (req, res) => {
   const category = await Category.findOne({
     urlName: req.params.urlName,
-  }).select("title description");
+  }).select("title description name");
   if (!category)
     return res
       .status(404)
