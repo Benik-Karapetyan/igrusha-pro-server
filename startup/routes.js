@@ -5,6 +5,8 @@ const users = require("../routes/users");
 const addresses = require("../routes/addresses");
 const categories = require("../routes/categories");
 const products = require("../routes/products");
+const entries = require("../routes/entries");
+const sales = require("../routes/sales");
 const favorites = require("../routes/favorites");
 const carts = require("../routes/carts");
 const checkouts = require("../routes/checkouts");
@@ -52,6 +54,8 @@ module.exports = (app) => {
   app.use("/api/addresses", addresses);
   app.use("/api/categories", categories);
   app.use("/api/products", products);
+  app.use("/api/entries", entries);
+  app.use("/api/sales", sales);
   app.use("/api/favorites", favorites);
   app.use("/api/carts", carts);
   app.use("/api/checkouts", checkouts);

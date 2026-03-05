@@ -5,6 +5,7 @@ const { Address } = require("../models/address");
 const { Product } = require("../models/product");
 const { Cart } = require("../models/cart");
 const { Checkout } = require("../models/checkout");
+const { Sale } = require("../models/sale");
 const {
   Order,
   validate,
@@ -16,6 +17,25 @@ const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const { startOfMonth, startOfDay, endOfDay } = require("date-fns");
 const omit = require("lodash/omit");
+
+const buildOrderSaleRecords = ({
+  quantityByProductId,
+  note,
+  createdBy,
+  orderId,
+  createdAt,
+}) =>
+  Object.entries(quantityByProductId)
+    .filter(([, quantity]) => quantity > 0)
+    .map(([productId, quantity]) => ({
+      productId,
+      quantity,
+      source: "order",
+      note,
+      createdBy,
+      orderId,
+      ...(createdAt ? { createdAt } : {}),
+    }));
 
 router.get("/", auth, async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -237,8 +257,17 @@ router.post("/", auth, async (req, res) => {
       for (const product of products) {
         const requestedQty = requestedQtyByProductId[product._id.toString()];
         product.numberInStock -= requestedQty;
+        product.soldCount = (product.soldCount || 0) + requestedQty;
         await product.save({ session });
       }
+
+      const sales = buildOrderSaleRecords({
+        quantityByProductId: requestedQtyByProductId,
+        note: "Sale from user order",
+        createdBy: req.user._id,
+        orderId: order._id,
+      });
+      if (sales.length) await Sale.insertMany(sales, { session });
 
       if (cart) await cart.save({ session });
       await checkout.save({ session });
@@ -344,8 +373,18 @@ router.post("/admin", [auth, admin], async (req, res) => {
       for (const product of products) {
         const requestedQty = requestedQtyByProductId[product._id.toString()];
         product.numberInStock -= requestedQty;
+        product.soldCount = (product.soldCount || 0) + requestedQty;
         await product.save({ session });
       }
+
+      const sales = buildOrderSaleRecords({
+        quantityByProductId: requestedQtyByProductId,
+        note: "Sale from admin order",
+        createdBy: req.user._id,
+        orderId: order._id,
+        createdAt: req.body.createdAt,
+      });
+      if (sales.length) await Sale.insertMany(sales, { session });
 
       await order.save({ session });
     });
@@ -507,14 +546,31 @@ router.put("/:id/admin", [auth, admin], async (req, res) => {
     if (req.body.deliveredAt) existingOrder.deliveredAt = req.body.deliveredAt;
 
     await session.withTransaction(async () => {
-      // Apply stock changes: positive values mean return stock, negative means reduce stock
       for (const productId in stockChanges) {
         const product = productMap[productId];
         if (product) {
-          product.numberInStock += stockChanges[productId]; // Add negative value = subtract
+          const stockDelta = stockChanges[productId];
+          product.numberInStock += stockDelta;
+          product.soldCount = Math.max(
+            0,
+            (product.soldCount || 0) - stockDelta
+          );
           await product.save({ session });
         }
       }
+
+      await Sale.deleteMany(
+        { orderId: existingOrder._id, source: "order" },
+        { session }
+      );
+      const sales = buildOrderSaleRecords({
+        quantityByProductId: requestedQtyByProductId,
+        note: "Sale from admin order",
+        createdBy: req.user._id,
+        orderId: existingOrder._id,
+        createdAt: req.body.createdAt,
+      });
+      if (sales.length) await Sale.insertMany(sales, { session });
 
       await existingOrder.save({ session });
     });
@@ -586,8 +642,13 @@ router.patch("/:id/cancel", auth, async (req, res) => {
       for (const product of products) {
         const quantity = quantityByProductId[product._id.toString()];
         product.numberInStock += quantity;
+        product.soldCount = Math.max(0, (product.soldCount || 0) - quantity);
         await product.save({ session });
       }
+      await Sale.deleteMany(
+        { orderId: order._id, source: "order" },
+        { session }
+      );
 
       await order.save({ session });
     });
@@ -662,14 +723,68 @@ router.patch("/:id/confirm-return", [auth, admin], async (req, res) => {
       for (const product of products) {
         const quantity = quantityByProductId[product._id.toString()];
         product.numberInStock += quantity;
+        product.soldCount = Math.max(0, (product.soldCount || 0) - quantity);
         await product.save({ session });
       }
+      await Sale.deleteMany(
+        { orderId: order._id, source: "order" },
+        { session }
+      );
 
       await order.save({ session });
     });
 
     await session.endSession();
     res.sendStatus(204);
+  } catch (err) {
+    await session.endSession();
+    throw err;
+  }
+});
+
+// Temporary backfill endpoint: rebuild order-linked sales from an order.
+router.post("/:id/backfill-sales-temp", [auth, admin], async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id))
+    return res.status(404).send("Order not found.");
+
+  const order = await Order.findById(req.params.id).select("items createdAt");
+  if (!order) return res.status(404).send("Order not found.");
+
+  const quantityByProductId = {};
+  for (const item of order.items) {
+    const key = item.productId.toString();
+    quantityByProductId[key] =
+      (quantityByProductId[key] || 0) + (item.quantity || 0);
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    let insertedCount = 0;
+
+    await session.withTransaction(async () => {
+      await Sale.deleteMany(
+        { orderId: order._id, source: "order" },
+        { session }
+      );
+
+      const sales = buildOrderSaleRecords({
+        quantityByProductId,
+        note: "Sale from admin order",
+        createdBy: req.user._id,
+        orderId: order._id,
+        createdAt: order.createdAt,
+      });
+      insertedCount = sales.length;
+      if (sales.length) await Sale.insertMany(sales, { session });
+    });
+
+    await session.endSession();
+    res.send({
+      orderId: order._id,
+      createdAt: order.createdAt,
+      insertedCount,
+    });
   } catch (err) {
     await session.endSession();
     throw err;
@@ -706,8 +821,13 @@ router.delete("/:id", [auth, admin], async (req, res) => {
         for (const product of products) {
           const quantity = quantityByProductId[product._id.toString()];
           product.numberInStock += quantity;
+          product.soldCount = Math.max(0, (product.soldCount || 0) - quantity);
           await product.save({ session });
         }
+        await Sale.deleteMany(
+          { orderId: order._id, source: "order" },
+          { session }
+        );
 
         if (order.checkoutId) {
           await Checkout.deleteOne({ _id: order.checkoutId }, { session });
@@ -727,6 +847,11 @@ router.delete("/:id", [auth, admin], async (req, res) => {
 
     try {
       await session.withTransaction(async () => {
+        await Sale.deleteMany(
+          { orderId: order._id, source: "order" },
+          { session }
+        );
+
         if (order.checkoutId) {
           await Checkout.deleteOne({ _id: order.checkoutId }, { session });
         }

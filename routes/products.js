@@ -2,6 +2,8 @@ const config = require("config");
 const router = require("express").Router();
 const mongoose = require("mongoose");
 const { Product, validate } = require("../models/product");
+const { Entry } = require("../models/entry");
+const { Sale } = require("../models/sale");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 const omit = require("lodash/omit");
@@ -18,7 +20,6 @@ router.get("/", async (req, res) => {
   const gender = req.query.gender;
   const ageFrom = req.query.ageFrom;
   const ageTo = req.query.ageTo;
-  const includeIsVariantOf = req.query.includeIsVariantOf === "true";
   const hasSection = req.query.hasSection === "true";
   const sortParam =
     typeof req.query.sort === "string" ? req.query.sort.trim() : "";
@@ -29,9 +30,6 @@ router.get("/", async (req, res) => {
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
-    $or: includeIsVariantOf
-      ? []
-      : [{ isVariantOf: null }, { isVariantOf: { $exists: false } }],
   };
 
   if (categories) {
@@ -179,6 +177,7 @@ router.get("/:id/related", async (req, res) => {
     const relatedProductsQuery = {
       categories: { $in: product.categories },
       _id: { $ne: product._id },
+      isVariantOf: { $ne: product._id },
       isPublished: true,
     };
 
@@ -310,6 +309,16 @@ router.get("/:urlName", async (req, res) => {
   res.send(product);
 });
 
+router.get("/by-id/:id", async (req, res) => {
+  let product = await Product.findById(req.params.id)
+    .populate({ path: "categories", select: "-__v" })
+    .select("-__v -cost");
+  if (!product)
+    return res.status(404).send("The product with the given ID was not found.");
+
+  res.send(product);
+});
+
 router.post("/", [auth, admin], async (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send(error.message);
@@ -326,6 +335,7 @@ router.post("/", [auth, admin], async (req, res) => {
         )}.amazonaws.com/${file}`
     ),
   });
+  const shouldCreateInitialEntry = req.body.numberInStock > 0;
 
   if (req.body.isVariantOf) {
     const isVariantOf = await Product.findById(req.body.isVariantOf);
@@ -341,6 +351,19 @@ router.post("/", [auth, admin], async (req, res) => {
       await session.withTransaction(async () => {
         await isVariantOf.save({ session });
         await product.save({ session });
+        if (shouldCreateInitialEntry) {
+          await Entry.create(
+            [
+              {
+                productId: product._id,
+                quantity: req.body.numberInStock,
+                note: "Initial stock on product creation",
+                createdBy: req.user._id,
+              },
+            ],
+            { session }
+          );
+        }
       });
 
       await session.endSession();
@@ -350,8 +373,32 @@ router.post("/", [auth, admin], async (req, res) => {
       throw err;
     }
   } else {
-    await product.save();
-    res.send(product);
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await product.save({ session });
+        if (shouldCreateInitialEntry) {
+          await Entry.create(
+            [
+              {
+                productId: product._id,
+                quantity: req.body.numberInStock,
+                note: "Initial stock on product creation",
+                createdBy: req.user._id,
+              },
+            ],
+            { session }
+          );
+        }
+      });
+
+      await session.endSession();
+      res.send(product);
+    } catch (err) {
+      await session.endSession();
+      throw err;
+    }
   }
 });
 
@@ -428,10 +475,44 @@ router.patch("/:id/publish", [auth, admin], async (req, res) => {
   res.send(product);
 });
 
+// Temporary endpoint: backfill an entry using product creation date.
+router.post("/backfill-entry-temp", [auth, admin], async (req, res) => {
+  const { productId, quantity } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(productId))
+    return res.status(400).send("Invalid product ID.");
+  if (!Number.isInteger(quantity) || quantity <= 0)
+    return res.status(400).send("Quantity must be a positive integer.");
+
+  const product = await Product.findById(productId).select("createdAt");
+  if (!product)
+    return res.status(404).send("The product with the given ID was not found.");
+
+  const entry = new Entry({
+    productId: product._id,
+    quantity,
+    note: "Backfilled entry by temp endpoint",
+    createdBy: req.user._id,
+    createdAt: product.createdAt,
+  });
+
+  await entry.save();
+  res.send(entry);
+});
+
 router.delete("/:id", [auth, admin], async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product)
     return res.status(404).send("The product with the given ID was not found.");
+
+  const [hasSales, hasEntries] = await Promise.all([
+    Sale.exists({ productId: product._id }),
+    Entry.exists({ productId: product._id }),
+  ]);
+  if (hasSales || hasEntries)
+    return res
+      .status(400)
+      .send("Cannot delete product with existing sales or entries.");
 
   if (product.isVariantOf) {
     const isVariantOf = await Product.findById(product.isVariantOf);
