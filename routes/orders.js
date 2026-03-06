@@ -742,55 +742,6 @@ router.patch("/:id/confirm-return", [auth, admin], async (req, res) => {
   }
 });
 
-// Temporary backfill endpoint: rebuild order-linked sales from an order.
-router.post("/:id/backfill-sales-temp", [auth, admin], async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id))
-    return res.status(404).send("Order not found.");
-
-  const order = await Order.findById(req.params.id).select("items createdAt");
-  if (!order) return res.status(404).send("Order not found.");
-
-  const quantityByProductId = {};
-  for (const item of order.items) {
-    const key = item.productId.toString();
-    quantityByProductId[key] =
-      (quantityByProductId[key] || 0) + (item.quantity || 0);
-  }
-
-  const session = await mongoose.startSession();
-
-  try {
-    let insertedCount = 0;
-
-    await session.withTransaction(async () => {
-      await Sale.deleteMany(
-        { orderId: order._id, source: "order" },
-        { session }
-      );
-
-      const sales = buildOrderSaleRecords({
-        quantityByProductId,
-        note: "Sale from admin order",
-        createdBy: req.user._id,
-        orderId: order._id,
-        createdAt: order.createdAt,
-      });
-      insertedCount = sales.length;
-      if (sales.length) await Sale.insertMany(sales, { session });
-    });
-
-    await session.endSession();
-    res.send({
-      orderId: order._id,
-      createdAt: order.createdAt,
-      insertedCount,
-    });
-  } catch (err) {
-    await session.endSession();
-    throw err;
-  }
-});
-
 router.delete("/:id", [auth, admin], async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id))
     return res.status(404).send("Order not found.");

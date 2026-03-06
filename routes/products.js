@@ -334,6 +334,9 @@ router.post("/", [auth, admin], async (req, res) => {
           "awsRegion"
         )}.amazonaws.com/${file}`
     ),
+    ...(req.body.numberInStock > 0
+      ? { entriesCount: req.body.numberInStock }
+      : {}),
   });
   const shouldCreateInitialEntry = req.body.numberInStock > 0;
 
@@ -473,31 +476,6 @@ router.patch("/:id/publish", [auth, admin], async (req, res) => {
   await product.save();
 
   res.send(product);
-});
-
-// Temporary endpoint: backfill an entry using product creation date.
-router.post("/backfill-entry-temp", [auth, admin], async (req, res) => {
-  const { productId, quantity } = req.body;
-
-  if (!mongoose.Types.ObjectId.isValid(productId))
-    return res.status(400).send("Invalid product ID.");
-  if (!Number.isInteger(quantity) || quantity <= 0)
-    return res.status(400).send("Quantity must be a positive integer.");
-
-  const product = await Product.findById(productId).select("createdAt");
-  if (!product)
-    return res.status(404).send("The product with the given ID was not found.");
-
-  const entry = new Entry({
-    productId: product._id,
-    quantity,
-    note: "Backfilled entry by temp endpoint",
-    createdBy: req.user._id,
-    createdAt: product.createdAt,
-  });
-
-  await entry.save();
-  res.send(entry);
 });
 
 router.delete("/:id", [auth, admin], async (req, res) => {

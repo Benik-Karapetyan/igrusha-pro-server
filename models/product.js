@@ -55,8 +55,9 @@ const ProductSchema = new mongoose.Schema({
   cost: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true, min: 1 },
   discount: { type: Number, required: true, min: 0, max: 99 },
-  numberInStock: { type: Number, required: true, min: 0 },
+  entriesCount: { type: Number, required: true, min: 0, default: 0 },
   soldCount: { type: Number, required: true, min: 0, default: 0 },
+  numberInStock: { type: Number, required: true, min: 0 },
   sectionName: { type: String },
   gender: {
     type: String,
@@ -162,8 +163,9 @@ const validateProduct = (product) => {
     cost: Joi.number().min(1).required(),
     price: Joi.number().min(1).required(),
     discount: Joi.number().min(0).max(99).required(),
-    numberInStock: Joi.number().min(0).required(),
+    entriesCount: Joi.number().min(0).optional(),
     soldCount: Joi.number().min(0).optional(),
+    numberInStock: Joi.number().min(0).required(),
     sectionName: Joi.string().allow(""),
     gender: Joi.string().valid("unisex", "boy", "girl").required(),
     ageRange: Joi.object({
