@@ -83,8 +83,6 @@ router.post("/", [auth, admin], async (req, res) => {
     });
 
     await session.endSession();
-    await entry.populate("productId", "-__v");
-    await entry.populate("createdBy", "-__v");
     res.send(entry);
   } catch (err) {
     await session.endSession();
@@ -129,8 +127,6 @@ router.put("/:id", [auth, admin], async (req, res) => {
     });
 
     await session.endSession();
-    await entry.populate("productId", "-__v");
-    await entry.populate("createdBy", "-__v");
     res.send(entry);
   } catch (err) {
     await session.endSession();
