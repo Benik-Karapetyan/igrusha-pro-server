@@ -143,9 +143,9 @@ router.delete("/:id", [auth, admin], async (req, res) => {
   if (!product)
     return res.status(404).send("The product with the given ID was not found.");
 
-  try {
-    const session = await mongoose.startSession();
+  const session = await mongoose.startSession();
 
+  try {
     await session.withTransaction(async () => {
       product.numberInStock -= entry.quantity;
       product.entriesCount -= entry.quantity;
