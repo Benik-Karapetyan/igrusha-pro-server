@@ -2,6 +2,7 @@ const config = require("config");
 const router = require("express").Router();
 const mongoose = require("mongoose");
 const { Product, validate } = require("../models/product");
+const { Category } = require("../models/category");
 const { Entry } = require("../models/entry");
 const { Sale } = require("../models/sale");
 const auth = require("../middleware/auth");
@@ -27,6 +28,7 @@ router.get("/", async (req, res) => {
   if (!sortTokens.length) sortTokens.push("createdAt");
   const hasSortField = (fieldName) =>
     sortTokens.some((token) => token.replace(/^-/, "") === fieldName);
+  let shouldSortByAgeAscending = false;
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
@@ -34,8 +36,21 @@ router.get("/", async (req, res) => {
 
   if (categories) {
     const categoryList = Array.isArray(categories) ? categories : [categories];
+    const categoryFilterList = categoryList.filter(
+      (category) => category !== "gamesAndToys"
+    );
 
-    query.categories = { $in: categoryList };
+    if (categoryList.includes("gamesAndToys")) {
+      const childCategories = await Category.find({
+        type: "gamesAndToys",
+      }).select("_id");
+
+      categoryFilterList.push(
+        ...childCategories.map((category) => category._id.toString())
+      );
+    }
+
+    query.categories = { $in: [...new Set(categoryFilterList)] };
   } else if (sectionName) {
     query.sectionName = sectionName;
   } else if (hasSection) {
@@ -69,6 +84,7 @@ router.get("/", async (req, res) => {
         ],
       };
       query.$and = query.$and ? query.$and.concat(ageRangeOr) : [ageRangeOr];
+      shouldSortByAgeAscending = true;
     }
   } else if (ageFrom) {
     const ageRangeOr = {
@@ -78,6 +94,7 @@ router.get("/", async (req, res) => {
       ],
     };
     query.$and = query.$and ? query.$and.concat(ageRangeOr) : [ageRangeOr];
+    shouldSortByAgeAscending = true;
   }
 
   if (priceMin && priceMax) {
@@ -85,6 +102,25 @@ router.get("/", async (req, res) => {
   }
 
   query.isPublished = true;
+  if (shouldSortByAgeAscending) {
+    const sortTokensWithoutAge = sortTokens.filter(
+      (token) => token.replace(/^-/, "") !== "ageRange.from"
+    );
+    const createdAtSortIndex = sortTokensWithoutAge.findIndex(
+      (token) => token.replace(/^-/, "") === "createdAt"
+    );
+
+    sortTokens.length = 0;
+    if (createdAtSortIndex === -1) {
+      sortTokens.push(...sortTokensWithoutAge, "ageRange.from");
+    } else {
+      sortTokens.push(
+        ...sortTokensWithoutAge.slice(0, createdAtSortIndex),
+        "ageRange.from",
+        ...sortTokensWithoutAge.slice(createdAtSortIndex)
+      );
+    }
+  }
   if (!hasSortField("_id")) sortTokens.push("_id");
   const sort = sortTokens.join(" ");
 

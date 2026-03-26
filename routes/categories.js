@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const skip = (page - 1) * pageSize;
-  const sort = req.query.sort || "-createdAt";
+  const sort = req.query.sort || "_id";
 
   const categories = await Category.find()
     .sort(sort)
