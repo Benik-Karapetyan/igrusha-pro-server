@@ -154,10 +154,30 @@ const getDiscountedPrice = (originalPrice, discountPercent) => {
   return Number((originalPrice - discountAmount).toFixed(0));
 };
 
+const buildOrderSaleRecords = ({
+  quantityByProductId,
+  note,
+  createdBy,
+  orderId,
+  createdAt,
+}) =>
+  Object.entries(quantityByProductId)
+    .filter(([, quantity]) => quantity > 0)
+    .map(([productId, quantity]) => ({
+      productId,
+      quantity,
+      source: "order",
+      note,
+      createdBy,
+      orderId,
+      ...(createdAt ? { createdAt } : {}),
+    }));
+
 module.exports = {
   Order,
   validate: validateOrder,
   validateAdminOrder,
   validateReason,
   getDiscountedPrice,
+  buildOrderSaleRecords,
 };
