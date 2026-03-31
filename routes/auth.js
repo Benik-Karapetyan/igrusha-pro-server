@@ -49,6 +49,7 @@ router.post("/sign-in", async (req, res) => {
 router.post("/sign-up", async (req, res) => {
   const { error } = validateSignUp(req.body);
   if (error) return res.status(400).send(error.message);
+  const { locale } = req.body;
 
   let user = await User.findOne({ email: req.body.email });
   if (user) return res.status(400).send("Email already in use.");
@@ -64,7 +65,7 @@ router.post("/sign-up", async (req, res) => {
     verificationCodeExpiry,
   });
 
-  await sendVerificationEmail(user.email, verificationCode);
+  await sendVerificationEmail(user.email, verificationCode, locale);
 
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);
@@ -101,7 +102,7 @@ router.post("/verify-email", preAuth, async (req, res) => {
 });
 
 router.post("/resend-verification-code", preAuth, async (req, res) => {
-  const { email } = req.body;
+  const { email, locale } = req.body;
   if (!email) return res.status(400).send("Email is required.");
 
   const user = await User.findOne({ email });
@@ -117,7 +118,7 @@ router.post("/resend-verification-code", preAuth, async (req, res) => {
   user.verificationCodeExpiry = verificationCodeExpiry;
   await user.save();
 
-  await sendVerificationEmail(user.email, verificationCode);
+  await sendVerificationEmail(user.email, verificationCode, locale);
 
   res.send("Verification email has been resent. Please check your inbox.");
 });
@@ -141,13 +142,11 @@ router.post("/finish-sign-up", preAuth, async (req, res) => {
 });
 
 router.post("/reset-password", async (req, res) => {
-  const { email } = req.body;
+  const { email, locale } = req.body;
   if (!email) return res.status(400).send("Email is required.");
 
   const user = await User.findOne({ email });
   if (!user) return res.status(404).send("No account found with this email.");
-  if (!user.isVerified)
-    return res.status(400).send("This email is not verified.");
 
   const verificationCode = crypto.randomInt(100000, 999999).toString();
   const verificationCodeExpiry = new Date(Date.now() + 30 * 60 * 1000);
@@ -157,7 +156,7 @@ router.post("/reset-password", async (req, res) => {
   user.eligibleForResetPassword = true;
   await user.save();
 
-  await sendPasswordResetEmail(user.email, verificationCode);
+  await sendPasswordResetEmail(user.email, verificationCode, locale);
   res.send("Password reset email has been sent. Please check your inbox.");
 });
 
@@ -180,7 +179,7 @@ router.post("/verify-reset-password", async (req, res) => {
 });
 
 router.post("/resend-reset-password-code", async (req, res) => {
-  const { email } = req.body;
+  const { email, locale } = req.body;
   if (!email) return res.status(400).send("Email is required.");
 
   const user = await User.findOne({ email });
@@ -194,7 +193,7 @@ router.post("/resend-reset-password-code", async (req, res) => {
   user.eligibleForResetPassword = true;
   await user.save();
 
-  await sendPasswordResetEmail(user.email, verificationCode);
+  await sendPasswordResetEmail(user.email, verificationCode, locale);
 
   res.send("Password reset email has been resent. Please check your inbox.");
 });
@@ -213,6 +212,7 @@ router.post("/change-password", async (req, res) => {
 
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(password, salt);
+  user.eligibleForResetPassword = false;
   await user.save();
 
   res.send("Password changed successfully.");

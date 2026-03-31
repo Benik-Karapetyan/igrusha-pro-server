@@ -100,6 +100,7 @@ const validateSignUp = (user) => {
     email: Joi.string().min(5).max(255).required().email(),
     password: Joi.string().required(),
     termsAndConditions: Joi.boolean().required(),
+    locale: Joi.string().trim().min(2).max(2).optional(),
   });
 
   const { error: passwordError } = validatePassword(user.password);
