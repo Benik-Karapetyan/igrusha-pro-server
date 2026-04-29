@@ -1,8 +1,9 @@
 const { Product } = require("../../models/product");
 
 const getProductMeta = async (req, res) => {
-  let product = await Product.findOne({ urlName: req.params.urlName }).select(
-    "name description"
+  let product = await Product.findOne(
+    { urlName: req.params.urlName },
+    { name: 1, description: 1, gallery: { $slice: 1 } }
   );
   if (!product)
     return res
