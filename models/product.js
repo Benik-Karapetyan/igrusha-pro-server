@@ -52,6 +52,57 @@ const ProductSchema = new mongoose.Schema({
       en: { type: String, required: true },
     },
   },
+  keyFeatures: {
+    type: [
+      {
+        label: {
+          type: {
+            am: { type: String, required: true },
+            ru: { type: String, required: true },
+            en: { type: String, required: true },
+          },
+          required: true,
+        },
+        value: {
+          type: {
+            am: { type: String, required: true },
+            ru: { type: String, required: true },
+            en: { type: String, required: true },
+          },
+          required: true,
+        },
+      },
+    ],
+    required: false,
+  },
+  whatsIncluded: {
+    type: [
+      {
+        am: { type: String, required: true },
+        ru: { type: String, required: true },
+        en: { type: String, required: true },
+      },
+    ],
+    required: false,
+  },
+  material: {
+    type: Object,
+    required: false,
+    properties: {
+      am: { type: String, required: false },
+      ru: { type: String, required: false },
+      en: { type: String, required: false },
+    },
+  },
+  poweredBy: {
+    type: Object,
+    required: false,
+    properties: {
+      am: { type: String, required: false },
+      ru: { type: String, required: false },
+      en: { type: String, required: false },
+    },
+  },
   cost: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true, min: 1 },
   discount: { type: Number, required: true, min: 0, max: 99 },
@@ -151,15 +202,50 @@ const validateProduct = (product) => {
       .required(),
     categories: Joi.array().items(Joi.objectId()).min(1).required(),
     name: Joi.object({
-      am: Joi.string().min(1).required(),
-      ru: Joi.string().min(1).required(),
-      en: Joi.string().min(1).required(),
+      am: Joi.string().required(),
+      ru: Joi.string().required(),
+      en: Joi.string().required(),
     }).required(),
     description: Joi.object({
-      am: Joi.string().min(1).required(),
-      ru: Joi.string().min(1).required(),
-      en: Joi.string().min(1).required(),
+      am: Joi.string().required(),
+      ru: Joi.string().required(),
+      en: Joi.string().required(),
     }).required(),
+    keyFeatures: Joi.array()
+      .items(
+        Joi.object({
+          label: Joi.object({
+            am: Joi.string().required(),
+            ru: Joi.string().required(),
+            en: Joi.string().required(),
+          }).required(),
+          value: Joi.object({
+            am: Joi.string().required(),
+            ru: Joi.string().required(),
+            en: Joi.string().required(),
+          }).required(),
+        })
+      )
+      .optional(),
+    whatsIncluded: Joi.array()
+      .items(
+        Joi.object({
+          am: Joi.string().required(),
+          ru: Joi.string().required(),
+          en: Joi.string().required(),
+        })
+      )
+      .optional(),
+    material: Joi.object({
+      am: Joi.string().allow("").optional(),
+      ru: Joi.string().allow("").optional(),
+      en: Joi.string().allow("").optional(),
+    }).optional(),
+    poweredBy: Joi.object({
+      am: Joi.string().allow("").optional(),
+      ru: Joi.string().allow("").optional(),
+      en: Joi.string().allow("").optional(),
+    }).optional(),
     cost: Joi.number().min(1).required(),
     price: Joi.number().min(1).required(),
     discount: Joi.number().min(0).max(99).required(),
