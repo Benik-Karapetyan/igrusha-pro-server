@@ -23,8 +23,8 @@ const UserSchema = new mongoose.Schema({
   },
   password: { type: String, required: true, minlength: 60, maxlength: 256 },
   termsAndConditions: { type: Boolean, required: true },
-  firstName: { type: String, minlength: 5, maxlength: 50 },
-  lastName: { type: String, minlength: 5, maxlength: 50 },
+  firstName: { type: String, minlength: 2, maxlength: 50 },
+  lastName: { type: String, minlength: 2, maxlength: 50 },
   phone: {
     type: String,
     minlength: 12,
@@ -65,8 +65,8 @@ const validateUser = (user) => {
     email: Joi.string().min(5).max(255).required().email(),
     password: Joi.string().required(),
     termsAndConditions: Joi.boolean().required(),
-    firstName: Joi.string().min(3).max(50).required(),
-    lastName: Joi.string().min(3).max(50).required(),
+    firstName: Joi.string().min(2).max(50).required(),
+    lastName: Joi.string().min(2).max(50).required(),
     phone: Joi.string().min(12).max(12).required(),
     addresses: Joi.array().items(Joi.objectId()).default([]),
   });
@@ -111,8 +111,8 @@ const validateSignUp = (user) => {
 
 const validateFinishSignUp = (user) => {
   const schema = Joi.object({
-    firstName: Joi.string().min(3).max(50).required(),
-    lastName: Joi.string().min(3).max(50).required(),
+    firstName: Joi.string().min(2).max(50).required(),
+    lastName: Joi.string().min(2).max(50).required(),
     phone: Joi.string().min(12).max(12).required(),
   });
 

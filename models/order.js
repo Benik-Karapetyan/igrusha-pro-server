@@ -20,7 +20,15 @@ const OrderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["onTheWay", "delivered", "cancelled", "returnPending", "returned"],
+    enum: [
+      "draft",
+      "draftCancelled",
+      "onTheWay",
+      "delivered",
+      "cancelled",
+      "returnPending",
+      "returned",
+    ],
     required: true,
   },
   orderInstructions: {
@@ -34,6 +42,34 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     enum: ["card", "cash"],
     required: true,
+  },
+  payment: {
+    gatewayOrderId: {
+      type: String,
+    },
+    formUrl: {
+      type: String,
+    },
+    registeredAt: {
+      type: Date,
+    },
+    amountMinor: {
+      type: Number,
+    },
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
+    isPaymentRefunded: {
+      type: Boolean,
+      default: false,
+    },
+    paidAt: {
+      type: Date,
+    },
+    lastStatusSyncAt: {
+      type: Date,
+    },
   },
   shippingFee: {
     type: Number,
@@ -116,6 +152,16 @@ const validateOrder = (order) => {
       )
       .min(1)
       .required(),
+    returnUrl: Joi.string().uri().when("paymentMethod", {
+      is: "card",
+      then: Joi.required(),
+      otherwise: Joi.forbidden(),
+    }),
+    language: Joi.string().min(2).max(2).when("paymentMethod", {
+      is: "card",
+      then: Joi.required(),
+      otherwise: Joi.forbidden(),
+    }),
   });
 
   return schema.validate(order);

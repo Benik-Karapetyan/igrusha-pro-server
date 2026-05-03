@@ -12,6 +12,8 @@ const cancelOrder = require("./cancelOrder");
 const returnOrder = require("./returnOrder");
 const confirmReturnOrder = require("./confirmReturnOrder");
 const deleteOrder = require("./deleteOrder");
+const getOrderPaymentStatus = require("./getOrderPaymentStatus");
+const completeOrderPayment = require("./completeOrderPayment");
 
 router.get("/", auth, getOrders);
 
@@ -32,6 +34,10 @@ router.patch("/:id/cancel", auth, cancelOrder);
 router.patch("/:id/return", auth, returnOrder);
 
 router.patch("/:id/confirm-return", [auth, admin], confirmReturnOrder);
+
+router.get("/:id/payment-status", auth, getOrderPaymentStatus);
+
+router.post("/:id/complete-payment", auth, completeOrderPayment);
 
 router.delete("/:id", [auth, admin], deleteOrder);
 

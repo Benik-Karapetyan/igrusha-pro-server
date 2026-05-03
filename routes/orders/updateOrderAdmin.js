@@ -23,12 +23,17 @@ const updateOrderAdmin = async (req, res) => {
   const existingOrder = await Order.findById(req.params.id);
   if (!existingOrder) return res.status(404).send("Order not found.");
 
-  // Prevent updating cancelled or returned orders
+  // Prevent updating cancelled, returned, or abandoned-payment draft orders
   if (
     existingOrder.status === "cancelled" ||
-    existingOrder.status === "returned"
+    existingOrder.status === "returned" ||
+    existingOrder.status === "draftCancelled"
   ) {
-    return res.status(400).send("Cannot update cancelled or returned orders.");
+    return res
+      .status(400)
+      .send(
+        "Cannot update an order that is cancelled, returned, or had draft payment expire."
+      );
   }
 
   const requestedQtyByProductId = {};

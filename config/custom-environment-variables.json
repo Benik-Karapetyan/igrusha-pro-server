@@ -8,5 +8,11 @@
   "awsSecretAccessKey": "igrusha_pro_awsSecretAccessKey",
   "sendGridApiKey": "igrusha_pro_sendGridApiKey",
   "emailFrom": "igrusha_pro_emailFrom",
-  "frontendUrl": "igrusha_pro_frontendUrl"
+  "frontendUrl": "igrusha_pro_frontendUrl",
+  "systemAdminEmail": "igrusha_pro_systemAdminEmail",
+  "paymentGatewayBaseUrl": "igrusha_pro_paymentGatewayBaseUrl",
+  "paymentGatewayUserName": "igrusha_pro_paymentGatewayUserName",
+  "paymentGatewayPassword": "igrusha_pro_paymentGatewayPassword",
+  "paymentGatewayCurrency": "igrusha_pro_paymentGatewayCurrency",
+  "paymentGatewayAmountMultiplier": "igrusha_pro_paymentGatewayAmountMultiplier"
 }

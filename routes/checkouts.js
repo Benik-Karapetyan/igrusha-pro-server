@@ -7,8 +7,9 @@ const {
 } = require("../models/checkout");
 const { Product } = require("../models/product");
 const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 
-router.get("/", auth, async (req, res) => {
+router.get("/", [auth, admin], async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const skip = (page - 1) * pageSize;
@@ -33,11 +34,16 @@ router.get("/:id", auth, async (req, res) => {
   const checkout = await Checkout.findOne({
     _id: req.params.id,
     userId: req.user._id,
-  }).populate({
-    path: "items.productId",
-    select: "-__v -cost",
-    populate: { path: "categories", select: "-__v" },
-  });
+  })
+    .populate({
+      path: "items.productId",
+      select: "-__v -cost",
+      populate: { path: "categories", select: "-__v" },
+    })
+    .populate({
+      path: "orderId",
+      select: "-__v",
+    });
   if (!checkout || checkout.status !== "active")
     return res.status(404).send("Checkout not found.");
 

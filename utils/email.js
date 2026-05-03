@@ -329,7 +329,116 @@ const sendPasswordResetEmail = async (email, resetToken, locale = "am") => {
   }
 };
 
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const sendNewOrderAdminNotification = async (orderNumber) => {
+  const to = config.get("systemAdminEmail");
+  if (!to || typeof to !== "string" || !to.trim()) {
+    winston.warn(
+      "systemAdminEmail not configured; skipping new order admin email"
+    );
+    return;
+  }
+
+  const safeOrderNumber = escapeHtml(orderNumber);
+
+  const msg = {
+    to: to.trim(),
+    from: { email: config.get("emailFrom"), name: "Igrusha Pro" },
+    subject: `New order — ${orderNumber}`,
+    text: String(orderNumber),
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background-color: #4CAF50;
+              color: #ffffff !important;
+              padding: 20px;
+              text-align: center;
+              border-radius: 5px 5px 0 0;
+            }
+            .content {
+              background-color: #f9f9f9;
+              padding: 30px;
+              border-radius: 0 0 5px 5px;
+              font-size: 16px;
+            }
+            .footer {
+              margin-top: 20px;
+              text-align: center;
+              color: #777;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin: 0; font-size: 22px;">New order</h1>
+            </div>
+            <div class="content">
+              <div style="text-align: center;">
+                <div
+                  style="
+                    display: inline-block;
+                    padding: 14px 28px;
+                    margin: 8px 0 0 0;
+                    background-color: #ffffff;
+                    border: 1px dashed #4CAF50;
+                    border-radius: 6px;
+                    font-size: 20px;
+                    font-weight: bold;
+                    letter-spacing: 1px;
+                    color: #1b5e20;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
+                      Consolas, 'Liberation Mono', 'Courier New', monospace;
+                  "
+                >
+                  ${safeOrderNumber}
+                </div>
+              </div>
+            </div>
+            <div class="footer">
+              <p>&copy; 2026 igrusha.pro. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await sgMail.send(msg);
+  } catch (error) {
+    winston.error("SendGrid new order admin email failed", {
+      message: error.message,
+      statusCode: error.response?.statusCode || error.code,
+      errors: error.response?.body?.errors,
+      to,
+      from: config.get("emailFrom"),
+    });
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
+  sendNewOrderAdminNotification,
 };

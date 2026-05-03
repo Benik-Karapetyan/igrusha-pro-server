@@ -9,6 +9,12 @@
   "sendGridApiKey": "",
   "emailFrom": "",
   "frontendUrl": "",
+  "systemAdminEmail": "",
+  "paymentGatewayBaseUrl": "",
+  "paymentGatewayUserName": "",
+  "paymentGatewayPassword": "",
+  "paymentGatewayCurrency": "051",
+  "paymentGatewayAmountMultiplier": 1,
   "freeShippingThreshold": 10000,
   "shippingFee": 1000
 }

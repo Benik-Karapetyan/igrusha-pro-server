@@ -13,6 +13,9 @@ const { Product } = require("../../models/product");
 const { Cart } = require("../../models/cart");
 const { Sale } = require("../../models/sale");
 
+const registerOrderPayment = require("./registerOrderPayment");
+const { sendNewOrderAdminNotification } = require("../../utils/email");
+
 const createOrder = async (req, res) => {
   const { error } = validate({
     ...req.body,
@@ -27,7 +30,7 @@ const createOrder = async (req, res) => {
   });
   if (!checkout || checkout.status !== "active")
     return res.status(404).send("Checkout not found.");
-  checkout.status = "completed";
+  if (req.body.paymentMethod === "cash") checkout.status = "completed";
 
   const address = await Address.findOne({
     _id: req.body.address._id,
@@ -91,7 +94,7 @@ const createOrder = async (req, res) => {
     const order = new Order({
       userId: req.user._id,
       checkoutId: req.body.checkoutId,
-      status: "onTheWay",
+      status: req.body.paymentMethod === "card" ? "draft" : "onTheWay",
       address,
       paymentMethod: req.body.paymentMethod,
       shippingFee,
@@ -121,15 +124,54 @@ const createOrder = async (req, res) => {
       if (sales.length) await Sale.insertMany(sales, { session });
 
       if (cart) await cart.save({ session });
-      await checkout.save({ session });
+      if (req.body.paymentMethod === "cash") await checkout.save({ session });
       await order.save({ session });
     });
 
     await session.endSession();
+
     await order.populate({
       path: "items.productId",
       select: "-__v -cost",
     });
+
+    if (req.body.paymentMethod === "card") {
+      const { payment, errorCode, errorMessage } = await registerOrderPayment(
+        order.orderNumber,
+        order.totalAmount,
+        req.body.language,
+        req.body.returnUrl
+      );
+
+      if (!!errorCode) {
+        return res.status(502).send({
+          errorCode,
+          errorMessage,
+        });
+      }
+
+      order.payment = {
+        ...order.payment,
+        ...payment,
+      };
+
+      checkout.orderId = order._id;
+
+      const paymentSession = await mongoose.startSession();
+      try {
+        await paymentSession.withTransaction(async () => {
+          await checkout.save({ session: paymentSession });
+          await order.save({ session: paymentSession });
+        });
+      } finally {
+        await paymentSession.endSession();
+      }
+    }
+
+    if (order.orderNumber) {
+      void sendNewOrderAdminNotification(order.orderNumber);
+    }
+
     res.send(order);
   } catch (err) {
     await session.endSession();

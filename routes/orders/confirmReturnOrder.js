@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const { Order } = require("../../models/order");
 const { Product } = require("../../models/product");
 const { Sale } = require("../../models/sale");
+const refundPaidCardOrder = require("./refundPaidCardOrder");
 
 const confirmReturnOrder = async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id))
@@ -23,6 +24,23 @@ const confirmReturnOrder = async (req, res) => {
   for (const item of order.items) {
     const key = item.productId.toString();
     quantityByProductId[key] = item.quantity;
+  }
+
+  const wasCardPaid =
+    order.paymentMethod === "card" && order.payment?.isPaid === true;
+
+  const refundResult = await refundPaidCardOrder(order);
+  if (!refundResult.ok) {
+    if (refundResult.body) {
+      return res.status(refundResult.status).send(refundResult.body);
+    }
+    return res.status(refundResult.status).send(refundResult.message);
+  }
+
+  if (wasCardPaid) {
+    order.payment.isPaid = false;
+    order.payment.isPaymentRefunded = true;
+    order.payment.paidAt = null;
   }
 
   const session = await mongoose.startSession();

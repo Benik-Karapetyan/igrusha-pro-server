@@ -11,6 +11,14 @@ const deleteOrder = async (req, res) => {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).send("Order not found.");
 
+  if (order.paymentMethod === "card") {
+    return res
+      .status(409)
+      .send(
+        "Cannot delete a card order that was paid. Use cancel or confirm return (with refund) instead."
+      );
+  }
+
   const statusesNeedingStockReturn = ["onTheWay", "delivered", "returnPending"];
   const shouldReturnStock = statusesNeedingStockReturn.includes(order.status);
 
