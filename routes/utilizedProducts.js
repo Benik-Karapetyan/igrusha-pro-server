@@ -94,4 +94,5 @@ router.delete("/:id", [auth, admin], async (req, res) => {
 
   res.send(utilizedProduct);
 });
+
 module.exports = router;

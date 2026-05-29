@@ -14,5 +14,6 @@
   "paymentGatewayUserName": "igrusha_pro_paymentGatewayUserName",
   "paymentGatewayPassword": "igrusha_pro_paymentGatewayPassword",
   "paymentGatewayCurrency": "igrusha_pro_paymentGatewayCurrency",
-  "paymentGatewayAmountMultiplier": "igrusha_pro_paymentGatewayAmountMultiplier"
+  "paymentGatewayAmountMultiplier": "igrusha_pro_paymentGatewayAmountMultiplier",
+  "geminiApiKey": "igrusha_pro_geminiApiKey"
 }

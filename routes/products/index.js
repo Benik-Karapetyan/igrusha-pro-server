@@ -13,6 +13,7 @@ const createProduct = require("./createProduct");
 const updateProduct = require("./updateProduct");
 const publishProduct = require("./publishProduct");
 const deleteProduct = require("./deleteProduct");
+const generateProductContent = require("./generateProductContent");
 
 router.get("/", getProducts);
 
@@ -31,6 +32,8 @@ router.get("/:urlName", getProductByUrlName);
 router.get("/by-id/:id", getProductById);
 
 router.post("/", [auth, admin], createProduct);
+
+router.post("/:id/generate-content", [auth, admin], generateProductContent);
 
 router.put("/:id", [auth, admin], updateProduct);
 
