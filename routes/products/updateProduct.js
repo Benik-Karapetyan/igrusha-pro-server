@@ -28,6 +28,12 @@ const updateProduct = async (req, res) => {
     ),
   });
 
+  const removeMaterial = !req.body.material;
+  const removePoweredBy = !req.body.poweredBy;
+
+  product.material = removeMaterial ? undefined : req.body.material;
+  product.poweredBy = removePoweredBy ? undefined : req.body.poweredBy;
+
   if (req.body.isVariantOf) {
     const isVariantOf = await Product.findById(req.body.isVariantOf);
     if (!isVariantOf) return res.status(400).send("Invalid product.");
