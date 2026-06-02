@@ -91,6 +91,7 @@ const createOrderAdmin = async (req, res) => {
       items: products.map((product) => ({
         productId: product._id,
         quantity: requestedQtyByProductId[product._id.toString()],
+        price: product.price,
         discount: requestedDiscountByProductId[product._id.toString()],
       })),
       createdAt: effectiveCreatedAt,

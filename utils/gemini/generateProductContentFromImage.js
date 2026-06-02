@@ -135,7 +135,9 @@ const buildProductHintsBlock = (productHints = {}) => {
   if (productHints.ageRange) {
     const { from, to } = productHints.ageRange;
     lines.push(
-      `Age range: ${from}${to != null ? `–${to}` : "+"} years (mention only if plausible from image)`
+      `Age range: ${from}${
+        to != null ? `–${to}` : "+"
+      } years (mention only if plausible from image)`
     );
   }
 
@@ -146,7 +148,10 @@ const buildProductHintsBlock = (productHints = {}) => {
   const categories = (productHints.categories || [])
     .map((category) => formatLocalized(category?.name))
     .filter(Boolean)
-    .map((category) => `am="${category.am}", ru="${category.ru}", en="${category.en}"`);
+    .map(
+      (category) =>
+        `am="${category.am}", ru="${category.ru}", en="${category.en}"`
+    );
 
   if (categories.length) {
     lines.push(`Categories: ${categories.join(" | ")}`);

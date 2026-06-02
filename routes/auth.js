@@ -15,6 +15,7 @@ const {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } = require("../utils/email");
+const { hasUsedWelcomeDiscount } = require("../utils/welcomeDiscount");
 
 router.get("/me", preAuth, async (req, res) => {
   const user = await User.findById(req.user._id).select(
@@ -22,7 +23,9 @@ router.get("/me", preAuth, async (req, res) => {
   );
   if (!user) return res.status(404).send("User not found.");
 
-  res.send(user);
+  const welcomeDiscountUsed = await hasUsedWelcomeDiscount(user._id);
+
+  res.send({ ...user.toObject(), welcomeDiscountUsed });
 });
 
 router.post("/sign-in", async (req, res) => {

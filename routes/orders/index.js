@@ -14,6 +14,7 @@ const confirmReturnOrder = require("./confirmReturnOrder");
 const deleteOrder = require("./deleteOrder");
 const getOrderPaymentStatus = require("./getOrderPaymentStatus");
 const completeOrderPayment = require("./completeOrderPayment");
+const backfillItemPrices = require("./backfillItemPrices");
 
 router.get("/", auth, getOrders);
 
@@ -24,6 +25,9 @@ router.get("/:id", auth, getOrderById);
 router.post("/", auth, createOrder);
 
 router.post("/admin", [auth, admin], createOrderAdmin);
+
+// TEMPORARY: one-off backfill of order item prices. Remove after running.
+router.post("/backfill-item-prices", [auth, admin], backfillItemPrices);
 
 router.put("/:id/admin", [auth, admin], updateOrderAdmin);
 

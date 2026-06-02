@@ -149,6 +149,7 @@ const updateOrderAdmin = async (req, res) => {
     existingOrder.items = req.body.items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
+      price: productMap[item.productId.toString()]?.price,
       discount: item.discount || 0,
     }));
     existingOrder.paymentMethod = req.body.paymentMethod;

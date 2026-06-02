@@ -109,12 +109,30 @@ const OrderSchema = new mongoose.Schema({
         required: true,
         min: 1,
       },
+      price: {
+        type: Number,
+      },
       discount: {
         type: Number,
       },
     },
   ],
+  appliedDiscounts: [
+    {
+      type: {
+        type: String,
+        enum: ["welcome"],
+        required: true,
+      },
+      percent: {
+        type: Number,
+        required: true,
+      },
+    },
+  ],
 });
+
+OrderSchema.index({ userId: 1, status: 1 });
 
 OrderSchema.pre("save", async function (next) {
   if (!this.orderNumber && this.isNew) {

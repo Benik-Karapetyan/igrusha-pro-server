@@ -15,6 +15,10 @@ const { Sale } = require("../../models/sale");
 
 const registerOrderPayment = require("./registerOrderPayment");
 const { sendNewOrderAdminNotification } = require("../../utils/email");
+const {
+  hasUsedWelcomeDiscount,
+  WELCOME_DISCOUNT_PERCENT,
+} = require("../../utils/welcomeDiscount");
 
 const createOrder = async (req, res) => {
   const { error } = validate({
@@ -51,7 +55,7 @@ const createOrder = async (req, res) => {
   }
 
   const outOfStockProducts = [];
-  let totalAmount = 0;
+  let subtotal = 0;
 
   for (const product of products) {
     const requestedQty = requestedQtyByProductId[product._id.toString()];
@@ -61,15 +65,21 @@ const createOrder = async (req, res) => {
         numberInStock: product.numberInStock,
       });
     }
-    totalAmount +=
+    subtotal +=
       getDiscountedPrice(product.price, product.discount) * requestedQty;
   }
 
+  const isWelcomeDiscountEligible = !(await hasUsedWelcomeDiscount(
+    req.user._id
+  ));
+  const discountedSubtotal = isWelcomeDiscountEligible
+    ? getDiscountedPrice(subtotal, WELCOME_DISCOUNT_PERCENT)
+    : subtotal;
+
   const shippingFee =
-    totalAmount < config.get("freeShippingThreshold")
+    discountedSubtotal < config.get("freeShippingThreshold")
       ? config.get("shippingFee")
       : 0;
-  totalAmount += shippingFee;
 
   if (outOfStockProducts.length > 0) {
     return res.status(400).send({
@@ -98,13 +108,17 @@ const createOrder = async (req, res) => {
       address,
       paymentMethod: req.body.paymentMethod,
       shippingFee,
-      totalAmount,
+      totalAmount: discountedSubtotal + shippingFee,
       orderInstructions: req.body.orderInstructions,
       items: products.map((product) => ({
         productId: product._id,
         quantity: requestedQtyByProductId[product._id.toString()],
+        price: product.price,
         discount: product.discount,
       })),
+      appliedDiscounts: isWelcomeDiscountEligible
+        ? [{ type: "welcome", percent: WELCOME_DISCOUNT_PERCENT }]
+        : [],
     });
 
     await session.withTransaction(async () => {
