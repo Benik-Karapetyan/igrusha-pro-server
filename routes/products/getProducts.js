@@ -95,6 +95,7 @@ const getProducts = async (req, res) => {
   }
 
   query.isPublished = true;
+  query.numberInStock = { $gt: 0 };
   if (shouldSortByAgeAscending) {
     const sortTokensWithoutAge = sortTokens.filter(
       (token) => token.replace(/^-/, "") !== "ageRange.from"
