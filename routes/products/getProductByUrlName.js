@@ -4,7 +4,7 @@ const getProductByUrlName = async (req, res) => {
   let product = await Product.findOne({ urlName: req.params.urlName })
     .populate({ path: "categories", select: "-__v" })
     .select("-__v -cost");
-  if (!product)
+  if (!product || !product.isPublished)
     return res
       .status(404)
       .send("The product with the given URL name was not found.");

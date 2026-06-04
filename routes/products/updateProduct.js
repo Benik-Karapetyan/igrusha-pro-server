@@ -66,8 +66,34 @@ const updateProduct = async (req, res) => {
       throw err;
     }
   } else {
-    await product.save();
-    res.send(product);
+    product.isVariantOf = undefined;
+
+    if (oldIsVariantOf) {
+      const session = await mongoose.startSession();
+
+      try {
+        await session.withTransaction(async () => {
+          const parent = await Product.findById(oldIsVariantOf).session(
+            session
+          );
+          if (parent) {
+            const index = parent.variants.indexOf(product._id);
+            if (index !== -1) parent.variants.splice(index, 1);
+            await parent.save({ session });
+          }
+          await product.save({ session });
+        });
+
+        await session.endSession();
+        return res.send(product);
+      } catch (err) {
+        await session.endSession();
+        throw err;
+      }
+    } else {
+      await product.save();
+      res.send(product);
+    }
   }
 };
 
