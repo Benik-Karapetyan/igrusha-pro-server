@@ -4,6 +4,7 @@ const auth = require("../routes/auth");
 const users = require("../routes/users");
 const addresses = require("../routes/addresses");
 const categories = require("../routes/categories");
+const brands = require("../routes/brands");
 const products = require("../routes/products");
 const entries = require("../routes/entries");
 const sales = require("../routes/sales");
@@ -54,6 +55,7 @@ module.exports = (app) => {
   app.use("/api/users", users);
   app.use("/api/addresses", addresses);
   app.use("/api/categories", categories);
+  app.use("/api/brands", brands);
   app.use("/api/products", products);
   app.use("/api/entries", entries);
   app.use("/api/sales", sales);

@@ -9,6 +9,7 @@ const getProducts = async (req, res) => {
   const search = req.query.search || "";
   const sectionName = req.query.sectionName;
   const categories = req.query.categories;
+  const brand = req.query.brand;
   const priceMin = req.query.priceMin;
   const priceMax = req.query.priceMax;
   const gender = req.query.gender;
@@ -48,6 +49,11 @@ const getProducts = async (req, res) => {
     query.sectionName = sectionName;
   } else if (hasSection) {
     query.sectionName = { $exists: true, $nin: [null, ""] };
+  }
+
+  if (brand) {
+    const brandList = Array.isArray(brand) ? brand : [brand];
+    query.brand = { $in: [...new Set(brandList)] };
   }
 
   if (gender) {
@@ -126,7 +132,7 @@ const getProducts = async (req, res) => {
     .select("-__v -cost");
   const totalRecords = await Product.countDocuments(query);
   const priceStats = await Product.aggregate([
-    { $match: omit(query, "price", "categories") },
+    { $match: omit(query, "price") },
     {
       $group: {
         _id: null,

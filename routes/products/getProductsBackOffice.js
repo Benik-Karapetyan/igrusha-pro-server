@@ -8,6 +8,7 @@ const getProductsBackOffice = async (req, res) => {
   const sectionName = req.query.sectionName;
   const sort = req.query.sort || "-createdAt";
   const includeIsVariantOf = req.query.includeIsVariantOf === "true";
+  const excludeOutOfStock = req.query.excludeOutOfStock === "true";
 
   const query = {
     "name.en": { $regex: search, $options: "i" },
@@ -18,6 +19,10 @@ const getProductsBackOffice = async (req, res) => {
 
   if (sectionName) {
     query.sectionName = sectionName;
+  }
+
+  if (excludeOutOfStock) {
+    query.numberInStock = { $gt: 0 };
   }
 
   const products = await Product.find(query)
