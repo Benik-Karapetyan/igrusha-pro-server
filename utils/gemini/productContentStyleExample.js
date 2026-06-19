@@ -4,10 +4,10 @@
 const STYLE_REFERENCE_PROSE = `Give your child an unforgettable journey through time with the Classical Train play set. This detailed retro train is more than just a toy—it's a real interactive attraction that brings the atmosphere of classic railways right into your nursery.
 
 Key Features:
-- Full Remote Control: Using a convenient remote (27 MHz), the young conductor can control the train's movement forward and backward.
-- Realistic Smoke Effect: Pour a little water into the special locomotive compartment, and it will begin to release safe "cold steam," mimicking a real steam engine.
-- Light and Sound Effects: A bright headlight illuminates the path in the dark, while thematic horn and clatter sounds make the play incredibly lifelike.
-- Retro Design: The vibrant red-and-green locomotive and finely detailed wagons (coal tender, passenger car, and "Express" freight car) create an aesthetic classic look.
+- Full remote control: Using a convenient remote (27 MHz), the young conductor can control the train's movement forward and backward.
+- Realistic smoke effect: Pour a little water into the special locomotive compartment, and it will begin to release safe "cold steam," mimicking a real steam engine.
+- Light and sound effects: A bright headlight illuminates the path in the dark, while thematic horn and clatter sounds make the play incredibly lifelike.
+- Retro design: The vibrant red-and-green locomotive and finely detailed wagons (coal tender, passenger car, and "Express" freight car) create an aesthetic classic look.
 
 What's in the Box:
 1. Locomotive with steam generator and lights.
@@ -27,25 +27,25 @@ const STYLE_REFERENCE_JSON_EN = {
   },
   keyFeatures: [
     {
-      label: { en: "Full Remote Control" },
+      label: { en: "Full remote control" },
       value: {
         en: "Using a convenient remote (27 MHz), the young conductor can control the train's movement forward and backward.",
       },
     },
     {
-      label: { en: "Realistic Smoke Effect" },
+      label: { en: "Realistic smoke effect" },
       value: {
         en: 'Pour a little water into the special locomotive compartment, and it will begin to release safe "cold steam," mimicking a real steam engine.',
       },
     },
     {
-      label: { en: "Light and Sound Effects" },
+      label: { en: "Light and sound effects" },
       value: {
         en: "A bright headlight illuminates the path in the dark, while thematic horn and clatter sounds make the play incredibly lifelike.",
       },
     },
     {
-      label: { en: "Retro Design" },
+      label: { en: "Retro design" },
       value: {
         en: 'The vibrant red-and-green locomotive and finely detailed wagons (coal tender, passenger car, and "Express" freight car) create an aesthetic classic look.',
       },

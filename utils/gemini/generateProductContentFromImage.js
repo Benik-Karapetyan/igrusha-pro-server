@@ -195,7 +195,7 @@ const buildPrompt = (productHints = {}) => {
     "FIELD RULES (same depth as the reference):",
     "- name: A short product title in EACH language. The am field MUST be written in Armenian, the ru field MUST be in Russian, the en field MUST be in English. If the provided name hint (or text on the packaging) is in the wrong language for a locale, TRANSLATE/transliterate it into that locale's language — never leave English text in the am or ru field, or Russian text in the en field. Keep proper brand names as-is.",
     "- description: Exactly 2 rich sentences per language. Opening hooks the parent/child emotionally; second explains interactive/play value. No one-liners.",
-    "- keyFeatures: 4–6 items. label = short Title Case feature name (2–5 words). value = one full sentence with concrete detail (frequency, effects, colors, mechanics) when visible.",
+    '- keyFeatures: 4–6 items. label = short feature name (2–5 words) in sentence case in EVERY locale (am, ru, en): capitalize only the first word and proper nouns/brand names — never Title Case (write "Double-decker design", NOT "Double-Decker Design"). value = one full sentence with concrete detail (frequency, effects, colors, mechanics) when visible.',
     "- whatsIncluded: 4–8 items. Each item is one complete sentence naming the piece + useful detail (function, quantity, size if known). Like a numbered unboxing list.",
     "- poweredBy: Full specification sentence when batteries/mains/USB apply (type, count, what they power, 'not included' if typical). Empty string in all locales if not powered.",
     "- material: One polished phrase per language (e.g. 'High-quality, impact-resistant plastic'), not a single bare noun.",
