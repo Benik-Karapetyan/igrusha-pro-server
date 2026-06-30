@@ -7,6 +7,14 @@ const CategorySchema = new mongoose.Schema({
     enum: ["gamesAndToys", "baby", "boy", "girl", "forHappiestDays"],
     required: true,
   },
+  // image: {
+  //   type: String,
+  //   required: true,
+  //   validate: {
+  //     validator: (v) => typeof v === "string" && v.length > 0,
+  //     message: "Image must be a valid URL",
+  //   },
+  // },
   urlName: {
     type: String,
     required: true,
@@ -63,6 +71,7 @@ const validateCategory = (category) => {
       )
       .min(1)
       .required(),
+    image: Joi.string().required(),
     urlName: Joi.string()
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .required(),

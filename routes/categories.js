@@ -10,6 +10,26 @@ router.get("/", async (req, res) => {
   const skip = (page - 1) * pageSize;
   const sort = req.query.sort || "_id";
 
+  const categories = await Category.find({ isPublished: true })
+    .sort(sort)
+    .skip(skip)
+    .limit(pageSize)
+    .select("-__v");
+  const totalRecords = await Category.countDocuments();
+
+  res.send({
+    items: categories,
+    totalPages: Math.ceil(totalRecords / pageSize),
+    totalRecords,
+  });
+});
+
+router.get("/back-office", [auth, admin], async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const skip = (page - 1) * pageSize;
+  const sort = req.query.sort || "_id";
+
   const categories = await Category.find()
     .sort(sort)
     .skip(skip)
@@ -68,6 +88,19 @@ router.put("/:id", [auth, admin], async (req, res) => {
     return res
       .status(404)
       .send("The category with the given ID was not found.");
+
+  res.send(category);
+});
+
+router.patch("/:id/publish", [auth, admin], async (req, res) => {
+  const category = await Category.findById(req.params.id);
+  if (!category)
+    return res
+      .status(404)
+      .send("The category with the given ID was not found.");
+
+  category.isPublished = req.body.isPublished;
+  await category.save();
 
   res.send(category);
 });
