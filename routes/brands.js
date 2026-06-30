@@ -48,7 +48,7 @@ router.get("/back-office", [auth, admin], async (req, res) => {
 router.get("/:urlName", async (req, res) => {
   const brand = await Brand.findOne({
     urlName: req.params.urlName,
-  }).select("image coverImage name title metaDescription description");
+  });
   if (!brand || !brand.isPublished)
     return res
       .status(404)
