@@ -48,7 +48,7 @@ router.get("/back-office", [auth, admin], async (req, res) => {
 router.get("/:urlName", async (req, res) => {
   const category = await Category.findOne({
     urlName: req.params.urlName,
-  }).select("image title description name");
+  }).select("image title description name isPublished");
   if (!category || !category.isPublished)
     return res
       .status(404)
