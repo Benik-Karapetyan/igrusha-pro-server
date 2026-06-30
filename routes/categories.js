@@ -1,3 +1,4 @@
+const config = require("config");
 const router = require("express").Router();
 const mongoose = require("mongoose");
 const { Category, validate } = require("../models/category");
@@ -47,8 +48,8 @@ router.get("/back-office", [auth, admin], async (req, res) => {
 router.get("/:urlName", async (req, res) => {
   const category = await Category.findOne({
     urlName: req.params.urlName,
-  }).select("title description name");
-  if (!category)
+  }).select("image title description name");
+  if (!category || !category.isPublished)
     return res
       .status(404)
       .send("The category with the given URL name was not found.");
@@ -63,7 +64,12 @@ router.post("/", [auth, admin], async (req, res) => {
   let category = await Category.findOne({ urlName: req.body.urlName });
   if (category) return res.status(400).send("Category already exists.");
 
-  category = new Category({ ...req.body });
+  category = new Category({
+    ...req.body,
+    image: `https://${config.get("s3BucketName")}.s3.${config.get(
+      "awsRegion"
+    )}.amazonaws.com/${req.body.image}`,
+  });
   await category.save();
 
   res.send(category);
@@ -81,7 +87,12 @@ router.put("/:id", [auth, admin], async (req, res) => {
 
   const category = await Category.findOneAndUpdate(
     { _id: req.params.id },
-    { ...req.body },
+    {
+      ...req.body,
+      image: `https://${config.get("s3BucketName")}.s3.${config.get(
+        "awsRegion"
+      )}.amazonaws.com/${req.body.image}`,
+    },
     { new: true }
   );
   if (!category)

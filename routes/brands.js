@@ -1,3 +1,4 @@
+const config = require("config");
 const router = require("express").Router();
 const mongoose = require("mongoose");
 const { Brand, validate } = require("../models/brand");
@@ -5,6 +6,26 @@ const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 
 router.get("/", async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const skip = (page - 1) * pageSize;
+  const sort = req.query.sort || "_id";
+
+  const brands = await Brand.find({ isPublished: true })
+    .sort(sort)
+    .skip(skip)
+    .limit(pageSize)
+    .select("-__v");
+  const totalRecords = await Brand.countDocuments();
+
+  res.send({
+    items: brands,
+    totalPages: Math.ceil(totalRecords / pageSize),
+    totalRecords,
+  });
+});
+
+router.get("/back-office", [auth, admin], async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const skip = (page - 1) * pageSize;
@@ -27,8 +48,8 @@ router.get("/", async (req, res) => {
 router.get("/:urlName", async (req, res) => {
   const brand = await Brand.findOne({
     urlName: req.params.urlName,
-  }).select("title description name");
-  if (!brand)
+  }).select("image coverImage name title metaDescription description");
+  if (!brand || !brand.isPublished)
     return res
       .status(404)
       .send("The brand with the given URL name was not found.");
@@ -43,7 +64,15 @@ router.post("/", [auth, admin], async (req, res) => {
   let brand = await Brand.findOne({ urlName: req.body.urlName });
   if (brand) return res.status(400).send("Brand already exists.");
 
-  brand = new Brand({ ...req.body });
+  brand = new Brand({
+    ...req.body,
+    image: `https://${config.get("s3BucketName")}.s3.${config.get(
+      "awsRegion"
+    )}.amazonaws.com/${req.body.image}`,
+    coverImage: `https://${config.get("s3BucketName")}.s3.${config.get(
+      "awsRegion"
+    )}.amazonaws.com/${req.body.coverImage}`,
+  });
   await brand.save();
 
   res.send(brand);
@@ -59,11 +88,30 @@ router.put("/:id", [auth, admin], async (req, res) => {
 
   const brand = await Brand.findOneAndUpdate(
     { _id: req.params.id },
-    { ...req.body },
+    {
+      ...req.body,
+      image: `https://${config.get("s3BucketName")}.s3.${config.get(
+        "awsRegion"
+      )}.amazonaws.com/${req.body.image}`,
+      coverImage: `https://${config.get("s3BucketName")}.s3.${config.get(
+        "awsRegion"
+      )}.amazonaws.com/${req.body.coverImage}`,
+    },
     { new: true }
   );
   if (!brand)
     return res.status(404).send("The brand with the given ID was not found.");
+
+  res.send(brand);
+});
+
+router.patch("/:id/publish", [auth, admin], async (req, res) => {
+  const brand = await Brand.findById(req.params.id);
+  if (!brand)
+    return res.status(404).send("The brand with the given ID was not found.");
+
+  brand.isPublished = req.body.isPublished;
+  await brand.save();
 
   res.send(brand);
 });
