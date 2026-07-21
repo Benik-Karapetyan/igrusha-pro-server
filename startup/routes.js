@@ -14,6 +14,7 @@ const carts = require("../routes/carts");
 const checkouts = require("../routes/checkouts");
 const orders = require("../routes/orders");
 const expenses = require("../routes/expenses");
+const procurementProducts = require("../routes/procurementProducts");
 const uploads = require("../routes/uploads");
 const error = require("../middleware/error");
 
@@ -28,6 +29,7 @@ module.exports = (app) => {
       ]
     : [
         "http://localhost:3000",
+        "http://localhost:3002",
         "http://localhost:5200",
         "http://localhost:5201",
       ];
@@ -65,6 +67,7 @@ module.exports = (app) => {
   app.use("/api/checkouts", checkouts);
   app.use("/api/orders", orders);
   app.use("/api/expenses", expenses);
+  app.use("/api/procurement-products", procurementProducts);
   app.use("/api/uploads", uploads);
   app.use(error);
 };
