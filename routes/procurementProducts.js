@@ -32,12 +32,6 @@ router.post("/", [auth, admin], async (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send(error.message);
 
-  let procurementProduct = await ProcurementProduct.findOne({
-    url: req.body.url,
-  });
-  if (procurementProduct)
-    return res.status(400).send("Procurement product already exists.");
-
   procurementProduct = new ProcurementProduct({
     ...req.body,
     image: `https://${config.get("s3BucketName")}.s3.${config.get(
