@@ -71,6 +71,19 @@ router.put("/:id", [auth, admin], async (req, res) => {
   res.send(procurementProduct);
 });
 
+router.patch("/:id/is-ordered", [auth, admin], async (req, res) => {
+  const procurementProduct = await ProcurementProduct.findById(req.params.id);
+  if (!procurementProduct)
+    return res
+      .status(404)
+      .send("The procurement product with the given ID was not found.");
+
+  procurementProduct.isOrdered = req.body.isOrdered;
+  await procurementProduct.save();
+
+  res.send(procurementProduct);
+});
+
 router.delete("/:id", [auth, admin], async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res
