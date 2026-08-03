@@ -44,6 +44,7 @@ const ProcurementProductSchema = new mongoose.Schema({
   brand: { type: String, required: false },
   seller: { type: String, required: false },
   isOrdered: { type: Boolean, required: false },
+  trackingNumber: { type: String, required: false },
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -68,11 +69,12 @@ const validateProcurementProduct = (procurementProduct) => {
     }).required(),
     quantity: Joi.number().min(0).optional(),
     deliveryInsideCost: Joi.number().min(0).optional(),
-    deliveryInsideDuration: Joi.string().optional(),
+    deliveryInsideDuration: Joi.string().allow("").optional(),
     paymentFee: Joi.number().min(0).optional(),
     brand: Joi.string().allow("").optional(),
     seller: Joi.string().allow("").optional(),
     isOrdered: Joi.boolean().optional(),
+    trackingNumber: Joi.string().allow("").optional(),
     createdAt: Joi.date().optional(),
   });
 
